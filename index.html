@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hospedaje Digital - Encuentra la habitación perfecta para tu estadía">
+    <title>Hospedaje Digital - Inicio</title>
+    
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header y Navegación -->
+    <header>
+        <nav>
+            <h1>🏨 Hospedaje Digital</h1>
+            <ul>
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="pages/nosotros.html">Nosotros</a></li>
+                <li><a href="pages/contacto.html">Contacto</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <h2>Bienvenido a Hospedaje Digital</h2>
+            <p>Encuentra la habitación perfecta para tu estadía</p>
+        </section>
+
+        <!-- Sección de Habitaciones -->
+        <section class="habitaciones-section">
+            <h3>Habitaciones Disponibles</h3>
+            <div id="habitaciones" class="habitaciones-grid">
+                <p class="mensaje-vacio">Cargando habitaciones...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Hospedaje Digital. Todos los derechos reservados.</p>
+        <p>Conectado al backend en: http://localhost:3000</p>
+    </footer>
+
+    <!-- Scripts JavaScript -->
+    <!-- ⭐ IMPORTANTE: Cargar en este orden -->
+    <script src="js/api.js"></script>      <!-- Primero: Funciones de API -->
+    <script src="js/app.js"></script>      <!-- Segundo: Lógica de la aplicación -->
+    <script src="js/eventos.js"></script>  <!-- Tercero: Eventos y formularios -->
+</body>
+</html>

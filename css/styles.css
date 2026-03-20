@@ -1,0 +1,446 @@
+/* ============================================
+   ESTILOS PRINCIPALES
+   ============================================ */
+
+/* Importar archivos base */
+@import 'reset.css';
+@import 'variables.css';
+
+/* ============================================
+   LAYOUT GENERAL
+   ============================================ */
+
+body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+    max-width: var(--max-width-xl);
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+    width: 100%;
+}
+
+/* ============================================
+   HEADER Y NAVEGACIÓN
+   ============================================ */
+
+header {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    padding: var(--spacing-md) var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+}
+
+header nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: var(--max-width-xl);
+    margin: 0 auto;
+}
+
+header nav h1 {
+    font-size: var(--font-size-xxl);
+    font-weight: var(--font-weight-bold);
+}
+
+header nav ul {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+header nav a {
+    color: var(--color-white);
+    transition: color var(--transition-base);
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+}
+
+header nav a:hover {
+    color: var(--color-secondary);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.hero {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    color: var(--color-white);
+    text-align: center;
+    padding: var(--spacing-xxl) var(--spacing-md);
+    border-radius: var(--border-radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.hero h2 {
+    font-size: var(--font-size-xxxl);
+    margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-bold);
+}
+
+.hero p {
+    font-size: var(--font-size-lg);
+    opacity: 0.9;
+}
+
+/* ============================================
+   SECCIONES
+   ============================================ */
+
+.habitaciones-section,
+.clientes-section,
+.reservas-section,
+.servicios-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.habitaciones-section h3,
+.clientes-section h3,
+.reservas-section h3,
+.servicios-section h3 {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+    color: var(--color-primary);
+}
+
+/* ============================================
+   GRIDS
+   ============================================ */
+
+.habitaciones-grid,
+.clientes-grid,
+.reservas-grid,
+.servicios-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+/* ============================================
+   CARDS - HABITACIONES
+   ============================================ */
+
+.habitacion-card {
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+    display: flex;
+    flex-direction: column;
+}
+
+.habitacion-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.habitacion-imagen {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background-color: var(--color-light-gray);
+}
+
+.habitacion-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+}
+
+.habitacion-card:hover .habitacion-imagen img {
+    transform: scale(1.05);
+}
+
+.habitacion-info {
+    padding: var(--spacing-md);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.habitacion-info h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-primary);
+}
+
+.habitacion-info .descripcion {
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    flex: 1;
+}
+
+.habitacion-info .precio {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-success);
+    margin-bottom: var(--spacing-sm);
+}
+
+.habitacion-info .estado {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    margin-bottom: var(--spacing-md);
+    text-transform: capitalize;
+}
+
+.estado.disponible {
+    background-color: var(--color-success);
+    color: var(--color-white);
+}
+
+.estado.ocupada {
+    background-color: var(--color-accent);
+    color: var(--color-white);
+}
+
+.estado.mantenimiento {
+    background-color: var(--color-warning);
+    color: var(--color-white);
+}
+
+.estado.confirmada {
+    background-color: var(--color-info);
+    color: var(--color-white);
+}
+
+.estado.cancelada {
+    background-color: var(--color-danger);
+    color: var(--color-white);
+}
+
+.btn-ver {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    transition: background-color var(--transition-base);
+}
+
+.btn-ver:hover {
+    background-color: var(--color-primary);
+}
+
+/* ============================================
+   CARDS - CLIENTES
+   ============================================ */
+
+.cliente-card {
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-md);
+    transition: box-shadow var(--transition-base);
+}
+
+.cliente-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.cliente-card h3 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+}
+
+.cliente-card p {
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+}
+
+.cliente-card strong {
+    color: var(--color-text);
+}
+
+/* ============================================
+   CARDS - RESERVAS
+   ============================================ */
+
+.reserva-card {
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-md);
+    border-left: 4px solid var(--color-secondary);
+}
+
+.reserva-card h3 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.reserva-card p {
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   CARDS - SERVICIOS
+   ============================================ */
+
+.servicio-card {
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: var(--spacing-md);
+    text-align: center;
+    transition: transform var(--transition-base);
+}
+
+.servicio-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.servicio-card h3 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.servicio-card .precio {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-success);
+    margin-top: var(--spacing-sm);
+}
+
+/* ============================================
+   MENSAJES
+   ============================================ */
+
+.mensaje-vacio {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-light);
+    font-size: var(--font-size-lg);
+    grid-column: 1 / -1;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+footer {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    text-align: center;
+    padding: var(--spacing-lg);
+    margin-top: auto;
+}
+
+footer p {
+    margin: 0;
+}
+
+/* ============================================
+   FORMULARIOS
+   ============================================ */
+
+form {
+    background: var(--color-white);
+    padding: var(--spacing-lg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+form input,
+form textarea,
+form select {
+    width: 100%;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    border: 1px solid var(--color-gray);
+    border-radius: var(--border-radius-sm);
+}
+
+form button[type="submit"] {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    transition: background-color var(--transition-base);
+}
+
+form button[type="submit"]:hover {
+    background-color: var(--color-primary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .habitaciones-grid,
+    .clientes-grid,
+    .reservas-grid,
+    .servicios-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    header nav {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    header nav ul {
+        flex-direction: column;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .hero h2 {
+        font-size: var(--font-size-xxl);
+    }
+    
+    main {
+        padding: var(--spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    header nav h1 {
+        font-size: var(--font-size-xl);
+    }
+    
+    .hero {
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+    
+    .hero h2 {
+        font-size: var(--font-size-xl);
+    }
+}
