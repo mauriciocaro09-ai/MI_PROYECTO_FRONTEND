@@ -104,13 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             const cliente = {
+                NroDocumento: document.getElementById('numero_documento').value,
                 Nombre: document.getElementById('nombre').value,
                 Apellido: document.getElementById('apellido').value,
-                CorreoElectronico: document.getElementById('email').value,
+                Email: document.getElementById('email').value,
                 Telefono: document.getElementById('telefono').value,
                 Direccion: document.getElementById('direccion').value,
-                NumeroDocumento: document.getElementById('numero_documento').value,
-                TipoDocumento: document.getElementById('tipo_documento').value
+                Estado: 1,
+                IDRol: 1
             };
             
             console.log('Creando cliente:', cliente);

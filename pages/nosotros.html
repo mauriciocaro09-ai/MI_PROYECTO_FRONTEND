@@ -11,58 +11,253 @@
     <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
-    <!-- Header y Navegación -->
-    <header>
-        <nav>
-            <h1>🏨 Hospedaje Digital</h1>
+    <!-- ============================================
+         SIDEBAR - Menú Lateral
+    ============================================ -->
+    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Abrir menú">
+        <span class="hamburger"></span>
+    </button>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>📊 MENU</h2>
+            <button id="sidebar-close" class="sidebar-close" aria-label="Cerrar menú">&times;</button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <h3>Tablas de Datos</h3>
             <ul>
-                <li><a href="../index.html">Inicio</a></li>
-                <li><a href="nosotros.html">Nosotros</a></li>
-                <li><a href="contacto.html">Contacto</a></li>
+                <li>
+                    <a href="#" onclick="cargarSeccion('habitaciones', event)">
+                        <span class="icon">🛏️</span>
+                        <span class="text">Habitaciones</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="cargarSeccion('clientes', event)">
+                        <span class="icon">👥</span>
+                        <span class="text">Clientes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="cargarSeccion('reservas', event)">
+                        <span class="icon">📅</span>
+                        <span class="text">Reservas</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="cargarSeccion('servicios', event)">
+                        <span class="icon">🧖</span>
+                        <span class="text">Servicios</span>
+                    </a>
+                </li>
             </ul>
         </nav>
-    </header>
-
-    <!-- Contenido Principal -->
-    <main>
-        <section class="hero">
-            <h2>Sobre Nosotros</h2>
-            <p>Conoce más sobre Hospedaje Digital</p>
-        </section>
-
-        <section style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h3 style="color: #2c3e50; margin-bottom: 1rem;">Nuestra Historia</h3>
-            <p style="line-height: 1.8; color: #555; margin-bottom: 1rem;">
-                Hospedaje Digital nació con la visión de ofrecer experiencias de alojamiento excepcionales. 
-                Nos dedicamos a proporcionar habitaciones cómodas y servicios de calidad para que tu estadía 
-                sea inolvidable.
-            </p>
+        
+        <!-- Sección de Miniaturas de Habitaciones -->
+        <div class="sidebar-gallery">
+            <h3>🏨 Habitaciones</h3>
+            <p class="gallery-subtitle">Vista rápida</p>
             
-            <h3 style="color: #2c3e50; margin-bottom: 1rem; margin-top: 2rem;">Nuestra Misión</h3>
-            <p style="line-height: 1.8; color: #555; margin-bottom: 1rem;">
-                Brindar a nuestros huéspedes un servicio de hospedaje de primera clase, combinando comodidad, 
-                tecnología y atención personalizada para crear experiencias memorables.
-            </p>
+            <!-- Controles de visualización -->
+            <div class="gallery-controls">
+                <button id="gallery-grid-view" class="gallery-view-btn active" title="Vista Grid">
+                    <span>▦</span>
+                </button>
+                <button id="gallery-carousel-view" class="gallery-view-btn" title="Vista Carrusel">
+                    <span>◀▶</span>
+                </button>
+            </div>
             
-            <h3 style="color: #2c3e50; margin-bottom: 1rem; margin-top: 2rem;">¿Por qué elegirnos?</h3>
-            <ul style="line-height: 2; color: #555; padding-left: 2rem;">
-                <li>✅ Habitaciones modernas y confortables</li>
-                <li>✅ Atención personalizada 24/7</li>
-                <li>✅ Ubicación privilegiada</li>
-                <li>✅ Servicios adicionales de calidad</li>
-                <li>✅ Reservas fáciles y seguras</li>
-            </ul>
-        </section>
-    </main>
+            <!-- Contenedor Grid -->
+            <div id="habitaciones-gallery-grid" class="habitaciones-gallery-grid">
+                <p class="mensaje-vacio">Cargando...</p>
+            </div>
+            
+            <!-- Contenedor Carrusel -->
+            <div id="habitaciones-gallery-carousel" class="habitaciones-gallery-carousel" style="display: none;">
+                <button class="carousel-btn prev" onclick="moverCarrusel(-1)">❮</button>
+                <div class="carousel-track-container">
+                    <ul id="carousel-track" class="carousel-track">
+                        <!-- Las miniaturas se cargarán aquí -->
+                    </ul>
+                </div>
+                <button class="carousel-btn next" onclick="moverCarrusel(1)">❯</button>
+            </div>
+        </div>
+        
+        <!-- Sección de Clientes -->
+        <div class="sidebar-gallery clientes-section">
+            <h3>👥 Clientes</h3>
+            <p class="gallery-subtitle">Registro</p>
+            
+            <!-- Formulario de registro de clientes -->
+            <form id="form-registro-cliente" class="form-cliente-sidebar">
+                <input type="text" id="cliente-nombre" placeholder="Nombre" required>
+                <input type="email" id="cliente-email" placeholder="Email" required>
+                <input type="tel" id="cliente-telefono" placeholder="Teléfono" required>
+                <input type="text" id="cliente-direccion" placeholder="Dirección" required>
+                <button type="submit" class="btn-registrar-cliente">Registrar</button>
+            </form>
+            <div id="mensaje-registro-cliente" class="mensaje-registro"></div>
+            
+            <!-- Lista de clientes -->
+            <div id="clientes-gallery-grid" class="clientes-gallery-grid">
+                <p class="mensaje-vacio">Cargando...</p>
+            </div>
+        </div>
+        
+        <div class="sidebar-footer">
+            <p>Hospedaje Digital v1.0</p>
+        </div>
+    </aside>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2026 Hospedaje Digital. Todos los derechos reservados.</p>
-    </footer>
+    <!-- Overlay oscuro cuando el sidebar está abierto -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Wrapper para el contenido principal -->
+    <div id="main-wrapper" class="main-wrapper">
+        <!-- Header y Navegación -->
+        <header>
+            <nav>
+                <h1>🏨 Hospedaje Digital</h1>
+                <ul>
+                    <li><a href="../index.html">Inicio</a></li>
+                    <li><a href="nosotros.html">Nosotros</a></li>
+                    <li><a href="reservas.html">Reservas</a></li>
+                    <li><a href="contacto.html">Contacto</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Contenido Principal -->
+        <main>
+            <section class="hero">
+                <h2>Sobre Nosotros</h2>
+                <p>Conoce más sobre Hospedaje Digital</p>
+            </section>
+
+            <section style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="color: #2c3e50; margin-bottom: 1rem;">Nuestra Historia</h3>
+                <p style="line-height: 1.8; color: #555; margin-bottom: 1rem;">
+                    Hospedaje Digital nació con la visión de ofrecer experiencias de alojamiento excepcionales. 
+                    Nos dedicamos a proporcionar habitaciones cómodas y servicios de calidad para que tu estadía 
+                    sea inolvidable.
+                </p>
+                
+                <h3 style="color: #2c3e50; margin-bottom: 1rem; margin-top: 2rem;">Nuestra Misión</h3>
+                <p style="line-height: 1.8; color: #555; margin-bottom: 1rem;">
+                    Brindar a nuestros huéspedes un servicio de hospedaje de primera clase, combinando comodidad, 
+                    tecnología y atención personalizada para crear experiencias memorables.
+                </p>
+                
+                <h3 style="color: #2c3e50; margin-bottom: 1rem; margin-top: 2rem;">¿Por qué elegirnos?</h3>
+                <ul style="line-height: 2; color: #555; padding-left: 2rem;">
+                    <li>✅ Habitaciones modernas y confortables</li>
+                    <li>✅ Atención personalizada 24/7</li>
+                    <li>✅ Ubicación privilegiada</li>
+                    <li>✅ Servicios adicionales de calidad</li>
+                    <li>✅ Reservas fáciles y seguras</li>
+                </ul>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2026 Hospedaje Digital. Todos los derechos reservados.</p>
+        </footer>
+    </div>
 
     <!-- Scripts JavaScript -->
-    <script src="../js/api.js"></script>
-    <script src="../js/app.js"></script>
-    <script src="../js/eventos.js"></script>
+    <!-- ⭐ IMPORTANTE: Cargar en este orden -->
+    <script src="../js/config.js"></script>    <!-- Primero: Configuración -->
+    <script src="../js/constants.js"></script> <!-- Segundo: Constantes -->
+    <script src="../js/mock-data.js"></script> <!-- Tercero: Datos mock -->
+    <script src="../js/validation.js"></script> <!-- Cuarto: Validación -->
+    <script src="../js/notifications.js"></script> <!-- Quinto: Notificaciones -->
+    <script src="../js/api.js"></script>      <!-- Sexto: Funciones de API -->
+    <script src="../js/app.js"></script>      <!-- Séptimo: Lógica de la aplicación -->
+    <script src="../js/eventos.js"></script>  <!-- Octavo: Eventos y formularios -->
+    
+    <!-- Script del Sidebar -->
+    <script>
+        // ============================================
+        // FUNCIONALIDAD DEL SIDEBAR
+        // ============================================
+        
+        const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebar-toggle');
+        const closeBtn = document.getElementById('sidebar-close');
+        const overlay = document.getElementById('sidebar-overlay');
+        const mainWrapper = document.getElementById('main-wrapper');
+
+        // Abrir sidebar
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+            mainWrapper.classList.add('sidebar-open');
+        }
+
+        // Cerrar sidebar
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            mainWrapper.classList.remove('sidebar-open');
+        }
+
+        // Event listeners
+        if (toggle) {
+            toggle.addEventListener('click', openSidebar);
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeSidebar);
+        }
+        
+        if (overlay) {
+            overlay.addEventListener('click', closeSidebar);
+        }
+
+        // Cerrar sidebar con tecla Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+
+        // Función para cargar una sección desde el sidebar
+        function cargarSeccion(seccion, event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
+            // Cerrar el sidebar
+            closeSidebar();
+            
+            // Redireccionar a la página principal
+            window.location.href = '../index.html';
+        }
+        
+        // ============================================
+        // INICIALIZAR GALERÍA DEL SIDEBAR
+        // ============================================
+        
+        // Cargar miniaturas en el sidebar
+        if (document.getElementById('habitaciones-gallery-grid')) {
+            cargarHabitacionesSidebar();
+            
+            // Configurar botones de cambio de vista
+            const gridViewBtn = document.getElementById('gallery-grid-view');
+            const carouselViewBtn = document.getElementById('gallery-carousel-view');
+            
+            if (gridViewBtn) {
+                gridViewBtn.addEventListener('click', () => cambiarVista('grid'));
+            }
+            
+            if (carouselViewBtn) {
+                carouselViewBtn.addEventListener('click', () => cambiarVista('carousel'));
+            }
+        }
+    </script>
 </body>
 </html>
