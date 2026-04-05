@@ -75,7 +75,7 @@
             </div>
             
             <!-- Contenedor Carrusel -->
-            <div id="habitaciones-gallery-carousel" class="habitaciones-gallery-carousel" style="display: none;">
+            <div id="habitaciones-gallery-carousel" class="habitaciones-gallery-carousel hidden">
                 <button class="carousel-btn prev" onclick="moverCarrusel(-1)">❮</button>
                 <div class="carousel-track-container">
                     <ul id="carousel-track" class="carousel-track">
@@ -140,10 +140,23 @@
 
         <!-- Sección de Reservas Existentes -->
         <section class="reservas-section">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div class="reservas-header-actions">
                 <h3>Reservas Actuales</h3>
-                <button type="button" onclick="handleResetMockReservas()" style="padding:8px 12px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer;">Restaurar reservas</button>
+                <button type="button" class="btn-restaurar-reservas" onclick="recargarReservasBD()">Recargar reservas</button>
             </div>
+            <form id="form-buscar-reservas" class="form-busqueda-reservas filtros-reservas">
+                <input type="text" id="documento-buscar-reservas" placeholder="Documento del cliente">
+                <select id="estado-buscar-reservas" aria-label="Estado de la reserva">
+                    <option value="">Todos los estados</option>
+                    <option value="1">Pendiente</option>
+                    <option value="2">Confirmada</option>
+                    <option value="3">Cancelada</option>
+                </select>
+                <input type="date" id="fecha-desde-reservas" aria-label="Fecha desde">
+                <input type="date" id="fecha-hasta-reservas" aria-label="Fecha hasta">
+                <button type="submit">Filtrar</button>
+                <button type="button" id="limpiar-busqueda-reservas">Ver todas</button>
+            </form>
             <div id="reservas" class="reservas-grid">
                 <p class="mensaje-vacio">Cargando reservas...</p>
             </div>
@@ -201,15 +214,15 @@
                     
                     <div class="form-group">
                         <label for="habitacion_id">Seleccionar Habitación:</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="habitacion-selector-row">
                             <select id="habitacion_id" required>
                                 <option value="">Cargando habitaciones...</option>
                             </select>
-                            <button type="button" onclick="recargarHabitaciones()" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Recargar</button>
+                            <button type="button" class="btn-recargar-habitaciones" onclick="recargarHabitaciones()">🔄 Recargar</button>
                         </div>
                     </div>
                     
-                    <div id="info-habitacion" class="info-habitacion" style="display: none;">
+                    <div id="info-habitacion" class="info-habitacion hidden">
                         <p><strong>Precio por noche:</strong> $<span id="precio-noche">0</span></p>
                         <p><strong>Tipo:</strong> <span id="tipo-habitacion">-</span></p>
                         <p><strong>Capacidad:</strong> <span id="capacidad-habitacion">-</span></p>
@@ -263,7 +276,6 @@
     <!-- ⭐ IMPORTANTE: Cargar en este orden -->
     <script src="../js/config.js"></script>    <!-- Primero: Configuración -->
     <script src="../js/constants.js"></script> <!-- Segundo: Constantes -->
-    <script src="../js/mock-data.js"></script> <!-- Tercero: Datos mock -->
     <script src="../js/validation.js"></script> <!-- Cuarto: Validación -->
     <script src="../js/notifications.js"></script> <!-- Quinto: Notificaciones -->
     <script src="../js/api.js"></script>      <!-- Sexto: Funciones de API -->
@@ -341,10 +353,10 @@
                 document.getElementById('precio-noche').textContent = option.dataset.precio;
                 document.getElementById('tipo-habitacion').textContent = option.dataset.tipo;
                 document.getElementById('capacidad-habitacion').textContent = option.dataset.capacidad;
-                infoDiv.style.display = 'block';
+                infoDiv.classList.remove('hidden');
                 actualizarResumen();
             } else {
-                infoDiv.style.display = 'none';
+                infoDiv.classList.add('hidden');
             }
         }
         
@@ -422,15 +434,9 @@
             await cargarHabitacionesParaReserva();
         };
 
-        window.handleResetMockReservas = function () {
-            if (!confirm('¿Desea restaurar las reservas mock al estado inicial? Se perderán cambios recientes.')) return;
-            if (typeof resetMockState === 'function') {
-                resetMockState();
-                alert('Reservas restauradas a datos iniciales.');
-                cargarReservas();
-            } else {
-                alert('No se encontró la función de restablecimiento de datos mock.');
-            }
+        window.recargarReservasBD = async function () {
+            await cargarReservas();
+            alert('Reservas recargadas desde la base de datos.');
         };
         
         // Inicializar cuando el DOM esté listo

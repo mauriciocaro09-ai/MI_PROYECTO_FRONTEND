@@ -131,6 +131,98 @@ header nav a:hover {
     margin-top: var(--spacing-lg);
 }
 
+.form-busqueda-reservas {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5rem 0 0.5rem;
+    padding: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.form-busqueda-reservas input,
+.form-busqueda-reservas select {
+    min-width: 260px;
+    padding: 0.8rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #fff;
+    color: #0f172a;
+}
+
+.form-busqueda-reservas button {
+    padding: 0.8rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.form-busqueda-reservas button[type="submit"] {
+    background: #2c3e50;
+    color: #fff;
+}
+
+.form-busqueda-reservas button[type="button"] {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.filtros-reservas {
+    justify-content: flex-start;
+}
+
+.filtros-reservas input[type="date"] {
+    min-width: 180px;
+}
+
+.filtros-reservas button[type="submit"] {
+    background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
+    color: #fff;
+}
+
+.filtros-reservas button[type="button"] {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.reservas-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.btn-restaurar-reservas {
+    padding: 8px 12px;
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.habitacion-selector-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-recargar-habitaciones {
+    padding: 5px 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 /* ============================================
    CARDS - HABITACIONES
    ============================================ */
@@ -1305,7 +1397,222 @@ form button[type="submit"]:hover {
         font-size: var(--font-size-xl);
     }
 }
-/* Estilos para botones de cliente */ .cliente-acciones { margin-top: 10px; display: flex; gap: 10px; } .btn-editar, .btn-eliminar { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; } .btn-editar { background-color: #4CAF50; color: white; } .btn-eliminar { background-color: #f44336; color: white; } .btn-editar:hover { background-color: #45a049; } .btn-eliminar:hover { background-color: #da190b; }
+/* Estilos para botones de cliente */
+.cliente-acciones {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-editar,
+.btn-eliminar {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-editar {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-eliminar {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-editar:hover {
+    background-color: #45a049;
+}
+
+.btn-eliminar:hover {
+    background-color: #da190b;
+}
+
+/* ============================================
+   DESIGN REFRESH 2026
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Sora:wght@400;500;600;700&display=swap');
+
+body {
+    background:
+        radial-gradient(circle at 12% -5%, rgba(255, 140, 66, 0.18), transparent 34%),
+        radial-gradient(circle at 100% 0%, rgba(15, 61, 62, 0.2), transparent 28%),
+        var(--color-background);
+    color: var(--color-text);
+    line-height: 1.55;
+}
+
+header {
+    background:
+        linear-gradient(120deg, rgba(10, 45, 46, 0.96), rgba(15, 61, 62, 0.92));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+header nav h1 {
+    font-family: var(--font-family-heading);
+    letter-spacing: 0.4px;
+}
+
+header nav a {
+    font-size: 0.94rem;
+    letter-spacing: 0.2px;
+}
+
+header nav a:hover {
+    color: #fff4e8;
+}
+
+main {
+    max-width: 1320px;
+    padding-top: calc(var(--spacing-xl) + 6px);
+}
+
+.hero {
+    background:
+        linear-gradient(135deg, rgba(15, 61, 62, 0.95), rgba(228, 87, 46, 0.9));
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(16, 24, 40, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    right: -70px;
+    top: -80px;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.hero h2 {
+    font-family: var(--font-family-heading);
+    letter-spacing: 0.4px;
+}
+
+.hero p {
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.habitaciones-section h3,
+.clientes-section h3,
+.reservas-section h3,
+.servicios-section h3 {
+    font-family: var(--font-family-heading);
+    color: var(--color-primary-dark);
+    letter-spacing: 0.3px;
+}
+
+.habitacion-card,
+.cliente-card,
+.reserva-card,
+.servicio-card {
+    border: 1px solid rgba(16, 24, 40, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.habitacion-card:hover,
+.cliente-card:hover,
+.reserva-card:hover,
+.servicio-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.13);
+}
+
+.reserva-card {
+    border-left: 6px solid var(--color-secondary);
+}
+
+.form-busqueda-reservas {
+    border-radius: 16px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+.form-busqueda-reservas input,
+.form-busqueda-reservas select,
+form input,
+form textarea,
+form select {
+    border: 1px solid #c8d2dc;
+    border-radius: 10px;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.form-busqueda-reservas input:focus,
+.form-busqueda-reservas select:focus,
+form input:focus,
+form textarea:focus,
+form select:focus {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.15);
+    transform: translateY(-1px);
+}
+
+.form-busqueda-reservas button,
+.btn-ver,
+form button[type="submit"],
+.btn-registrar-cliente,
+.btn-recargar-habitaciones,
+.btn-restaurar-reservas,
+.btn-reservar {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+}
+
+.form-busqueda-reservas button:hover,
+.btn-ver:hover,
+form button[type="submit"]:hover,
+.btn-registrar-cliente:hover,
+.btn-recargar-habitaciones:hover,
+.btn-restaurar-reservas:hover,
+.btn-reservar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.2);
+    filter: saturate(1.05);
+}
+
+footer {
+    background: linear-gradient(120deg, #0d3031, #174c4d);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar {
+    background: linear-gradient(180deg, #0f3d3e 0%, #0a2d2e 100%);
+}
+
+.sidebar-nav a {
+    border: 1px solid transparent;
+}
+
+.sidebar-nav a:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 900px) {
+    .form-busqueda-reservas {
+        justify-content: stretch;
+        gap: 0.65rem;
+    }
+
+    .form-busqueda-reservas input,
+    .form-busqueda-reservas select,
+    .form-busqueda-reservas button {
+        min-width: 100%;
+        width: 100%;
+    }
+}
 
 /* Estilos para botones de reserva */
 .reserva-acciones {

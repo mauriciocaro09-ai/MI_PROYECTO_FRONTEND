@@ -158,6 +158,19 @@
             <!-- Sección de Reservas (oculta por defecto) -->
             <section id="seccion-reservas" class="reservas-section hidden">
                 <h3>Reservas Realizadas</h3>
+                <form id="form-buscar-reservas" class="form-busqueda-reservas filtros-reservas">
+                    <input type="text" id="documento-buscar-reservas" placeholder="Documento del cliente">
+                    <select id="estado-buscar-reservas" aria-label="Estado de la reserva">
+                        <option value="">Todos los estados</option>
+                        <option value="1">Pendiente</option>
+                        <option value="2">Confirmada</option>
+                        <option value="3">Cancelada</option>
+                    </select>
+                    <input type="date" id="fecha-desde-reservas" aria-label="Fecha desde">
+                    <input type="date" id="fecha-hasta-reservas" aria-label="Fecha hasta">
+                    <button type="submit">Filtrar</button>
+                    <button type="button" id="limpiar-busqueda-reservas">Ver todas</button>
+                </form>
                 <div id="reservas" class="reservas-grid">
                     <p class="mensaje-vacio">Cargando reservas...</p>
                 </div>
@@ -183,12 +196,11 @@
     <!-- ⭐ IMPORTANTE: Cargar en este orden -->
     <script src="js/config.js"></script>    <!-- Primero: Configuración -->
     <script src="js/constants.js"></script> <!-- Segundo: Constantes -->
-    <script src="js/mock-data.js"></script> <!-- Tercero: Datos mock -->
-    <script src="js/validation.js"></script> <!-- Cuarto: Validación -->
-    <script src="js/notifications.js"></script> <!-- Quinto: Notificaciones -->
-    <script src="js/api.js"></script>      <!-- Sexto: Funciones de API -->
-    <script src="js/app.js"></script>      <!-- Séptimo: Lógica de la aplicación -->
-    <script src="js/eventos.js"></script>  <!-- Octavo: Eventos y formularios -->
+    <script src="js/validation.js"></script> <!-- Tercero: Validación -->
+    <script src="js/notifications.js"></script> <!-- Cuarto: Notificaciones -->
+    <script src="js/api.js"></script>      <!-- Quinto: Funciones de API -->
+    <script src="js/app.js"></script>      <!-- Sexto: Lógica de la aplicación -->
+    <script src="js/eventos.js"></script>  <!-- Séptimo: Eventos y formularios -->
     
     <!-- Script del Sidebar -->
     <script>
@@ -249,18 +261,27 @@
                 event.preventDefault();
             }
             
-            // Ocultar todas las secciones
-            document.getElementById('seccion-habitaciones').style.display = 'none';
-            document.getElementById('seccion-clientes').style.display = 'none';
-            document.getElementById('seccion-reservas').style.display = 'none';
-            document.getElementById('seccion-servicios').style.display = 'none';
+            const secciones = [
+                'seccion-habitaciones',
+                'seccion-clientes',
+                'seccion-reservas',
+                'seccion-servicios'
+            ];
+
+            // Ocultar todas las secciones usando la clase helper
+            secciones.forEach((seccionId) => {
+                const elemento = document.getElementById(seccionId);
+                if (elemento) {
+                    elemento.classList.add('hidden');
+                }
+            });
             
             // Mostrar la sección seleccionada
             const seccionId = 'seccion-' + seccion;
             const seccionElement = document.getElementById(seccionId);
             
             if (seccionElement) {
-                seccionElement.style.display = 'block';
+                seccionElement.classList.remove('hidden');
                 
                 // Cargar los datos según la sección
                 if (seccion === 'habitaciones') {

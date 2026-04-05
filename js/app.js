@@ -5,6 +5,113 @@
 // Variable para controlar el carrusel
 let carruselIndex = 0;
 let habitacionesCargadas = [];
+let reservasCargadas = [];
+let estadosReservaCargados = [];
+let lastShownApiError = null;
+
+const normalizarTexto = (valor) => String(valor ?? '').trim().toLowerCase();
+
+const normalizarFecha = (valor) => {
+    if (!valor) return '';
+
+    const fecha = new Date(valor);
+    if (Number.isNaN(fecha.getTime())) {
+        return String(valor).slice(0, 10);
+    }
+
+    return fecha.toISOString().slice(0, 10);
+};
+
+const obtenerFiltrosReservas = () => {
+    const documento = document.getElementById('documento-buscar-reservas');
+    const estado = document.getElementById('estado-buscar-reservas');
+    const fechaDesde = document.getElementById('fecha-desde-reservas');
+    const fechaHasta = document.getElementById('fecha-hasta-reservas');
+
+    return {
+        documento: normalizarTexto(documento?.value),
+        estado: String(estado?.value || ''),
+        fechaDesde: fechaDesde?.value || '',
+        fechaHasta: fechaHasta?.value || ''
+    };
+};
+
+const obtenerNombreEstadoReserva = (reserva) => {
+    return reserva.EstadoReservaNombre
+        || reserva.NombreEstadoReserva
+    || reserva.estadoNombre
+        || 'Desconocido';
+};
+
+const obtenerClaseEstadoReserva = (nombreEstado) => {
+    const normalizado = normalizarTexto(nombreEstado);
+
+    if (normalizado.includes('pend')) return 'pendiente';
+    if (normalizado.includes('conf')) return 'confirmada';
+    if (normalizado.includes('cancel')) return 'cancelada';
+
+    return normalizado.replace(/\s+/g, '-');
+};
+
+async function cargarEstadosReserva() {
+    const select = document.getElementById('estado-buscar-reservas');
+    if (!select) return;
+
+    try {
+        estadosReservaCargados = await obtenerEstadosReserva();
+    } catch (error) {
+        console.error('Error cargando estados de reserva:', error);
+        estadosReservaCargados = [];
+    }
+
+    const estados = Array.isArray(estadosReservaCargados) && estadosReservaCargados.length > 0
+        ? estadosReservaCargados
+        : [];
+
+    select.innerHTML = '<option value="">Todos los estados</option>';
+
+    if (estados.length === 0) {
+        console.warn('No se pudieron cargar estados de reserva desde la base de datos');
+        return;
+    }
+
+    estados.forEach((estado) => {
+        const option = document.createElement('option');
+        option.value = String(estado.IdEstadoReserva);
+        option.textContent = estado.NombreEstadoReserva;
+        select.appendChild(option);
+    });
+}
+
+const aplicarFiltrosReservas = (reservas) => {
+    const filtros = obtenerFiltrosReservas();
+
+    return (reservas || []).filter((reserva) => {
+        const documentoReserva = normalizarTexto(reserva.NroDocumentoCliente || reserva.NroDocumento);
+        const estadoReserva = String(Number(reserva.IdEstadoReserva || reserva.IdEstado || reserva.estadoId || ''));
+        const fechaReserva = normalizarFecha(reserva.FechaInicio || reserva.FechaReserva || reserva.FechaFinalizacion);
+
+        const coincideDocumento = !filtros.documento || documentoReserva.includes(filtros.documento);
+        const coincideEstado = !filtros.estado || estadoReserva === filtros.estado;
+        const coincideFechaDesde = !filtros.fechaDesde || (fechaReserva && fechaReserva >= filtros.fechaDesde);
+        const coincideFechaHasta = !filtros.fechaHasta || (fechaReserva && fechaReserva <= filtros.fechaHasta);
+
+        return coincideDocumento && coincideEstado && coincideFechaDesde && coincideFechaHasta;
+    });
+};
+
+const notificarErrorBackend = (contexto) => {
+    const apiError = typeof getApiLastError === 'function' ? getApiLastError() : null;
+
+    if (!apiError) return;
+    if (apiError === lastShownApiError) return;
+
+    lastShownApiError = apiError;
+
+    if (typeof showWarning === 'function') {
+        showWarning(`${contexto}. Verifica que el backend esté activo en http://localhost:3000`, 'Conexión backend');
+    }
+};
 
 // Función para validar y obtener URL de imagen
 function obtenerUrlImagen(valor) {
@@ -393,7 +500,7 @@ function mostrarClientes(clientes) {
     });
 }
 
-function mostrarReservas(reservas) {
+function mostrarReservas(reservas, mensajeVacio = 'No hay reservas registradas') {
     const contenedor = document.getElementById('reservas');
     if (!contenedor) return;
     
@@ -401,13 +508,13 @@ function mostrarReservas(reservas) {
     contenedor.innerHTML = '';
     
     if (!reservas || reservas.length === 0) {
-        contenedor.innerHTML = '<p class="mensaje-vacio">No hay reservas registradas</p>';
+        contenedor.innerHTML = `<p class="mensaje-vacio">${mensajeVacio}</p>`;
         return;
     }
     
     reservas.forEach(reserva => {
         const reservaId = reserva.IdReserva || reserva.IDReserva || reserva.id;
-        const estadoId = reserva.IdEstadoReserva || reserva.IdEstado || reserva.estadoId || 1;
+        const estadoId = Number(reserva.IdEstadoReserva || reserva.IdEstado || reserva.estadoId || 1);
         const nombreCliente = reserva.Nombre || reserva.NombreCliente || 'Sin nombre';
         const apellidoCliente = reserva.Apellido || reserva.ApellidoCliente || '';
         const documentoCliente = reserva.NroDocumentoCliente || reserva.NroDocumento || '';
@@ -418,6 +525,8 @@ function mostrarReservas(reservas) {
         const subTotal = reserva.Sub_Total || reserva.CostoTotal || 0;
         const iva = reserva.IVA || 0;
         const total = reserva.Monto_Total || reserva.CostoTotal || 0;
+        const nombreEstado = obtenerNombreEstadoReserva(reserva);
+        const claseEstado = obtenerClaseEstadoReserva(nombreEstado);
 
         const card = document.createElement('div');
         card.className = 'reserva-card';
@@ -431,7 +540,7 @@ function mostrarReservas(reservas) {
             <p><strong>Subtotal:</strong> $${subTotal}</p>
             <p><strong>IVA:</strong> $${iva}</p>
             <p><strong>Total:</strong> $${total}</p>
-            <span class="estado ${estadoId === 1 ? 'pendiente' : estadoId === 2 ? 'confirmada' : 'cancelada'}">${estadoId === 1 ? 'Pendiente' : estadoId === 2 ? 'Confirmada' : 'Cancelada'}</span>
+            <span class="estado ${claseEstado}">${nombreEstado}</span>
             <div class="reserva-acciones">
                 <button class="btn-eliminar" onclick="eliminarReservaUI(${reservaId})">Eliminar</button>
             </div>
@@ -472,6 +581,7 @@ async function cargarHabitaciones() {
     console.log('Cargando habitaciones...');
     const habitaciones = await obtenerHabitaciones();
     console.log('Habitaciones obtenidas:', habitaciones);
+    notificarErrorBackend('No se pudieron cargar habitaciones');
     mostrarHabitaciones(habitaciones);
 }
 
@@ -479,20 +589,74 @@ async function cargarClientes() {
     console.log('Cargando clientes...');
     const clientes = await obtenerClientes();
     console.log('Clientes obtenidos:', clientes);
+    notificarErrorBackend('No se pudieron cargar clientes');
     mostrarClientes(clientes);
 }
 
 async function cargarReservas() {
     console.log('Cargando reservas...');
-    const reservas = await obtenerReservas();
-    console.log('Reservas obtenidas:', reservas);
-    mostrarReservas(reservas);
+    reservasCargadas = await obtenerReservas();
+    console.log('Reservas obtenidas:', reservasCargadas);
+    notificarErrorBackend('No se pudieron cargar reservas');
+    mostrarReservas(aplicarFiltrosReservas(reservasCargadas));
+}
+
+async function cargarReservasPorCliente(documento) {
+    const termino = String(documento || '').trim();
+
+    if (!termino) {
+        await cargarReservas();
+        return;
+    }
+
+    const documentoInput = document.getElementById('documento-buscar-reservas');
+    if (documentoInput) {
+        documentoInput.value = termino;
+    }
+
+    mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
+}
+
+function configurarBusquedaReservas() {
+    const formulario = document.getElementById('form-buscar-reservas');
+    const inputDocumento = document.getElementById('documento-buscar-reservas');
+    const selectEstado = document.getElementById('estado-buscar-reservas');
+    const inputFechaDesde = document.getElementById('fecha-desde-reservas');
+    const inputFechaHasta = document.getElementById('fecha-hasta-reservas');
+    const botonLimpiar = document.getElementById('limpiar-busqueda-reservas');
+
+    if (!formulario || !inputDocumento) return;
+
+    formulario.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
+    });
+
+    [inputDocumento, selectEstado, inputFechaDesde, inputFechaHasta].forEach((campo) => {
+        if (campo) {
+            campo.addEventListener('input', () => {
+                mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
+            });
+            campo.addEventListener('change', () => {
+                mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
+            });
+        }
+    });
+
+    if (botonLimpiar) {
+        botonLimpiar.addEventListener('click', async (event) => {
+            event.preventDefault();
+            formulario.reset();
+            await cargarReservas();
+        });
+    }
 }
 
 async function cargarServicios() {
     console.log('Cargando servicios...');
     const servicios = await obtenerServicios();
     console.log('Servicios obtenidos:', servicios);
+    notificarErrorBackend('No se pudieron cargar servicios');
     mostrarServicios(servicios);
 }
 
@@ -559,6 +723,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configurar formulario de editar cliente (si existe)
     if (typeof configurarFormularioEditarCliente === 'function') {
         configurarFormularioEditarCliente();
+    }
+
+    configurarBusquedaReservas();
+
+    if (document.getElementById('estado-buscar-reservas')) {
+        cargarEstadosReserva();
     }
 });
 

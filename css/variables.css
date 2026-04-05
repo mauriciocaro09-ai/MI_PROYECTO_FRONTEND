@@ -4,25 +4,35 @@
 
 :root {
     /* Colores Principales */
-    --color-primary: #5dade2;
-    --color-secondary: #3498db;
-    --color-accent: #e74c3c;
-    --color-success: #27ae60;
-    --color-warning: #f39c12;
-    --color-info: #3498db;
-    --color-danger: #e74c3c;
+    --color-primary: #0f3d3e;
+    --color-primary-dark: #0a2d2e;
+    --color-primary-light: #c9e5df;
+    --color-secondary: #ff8c42;
+    --color-accent: #e4572e;
+    --color-success: #2f9e44;
+    --color-warning: #d08c00;
+    --color-info: #1d4ed8;
+    --color-danger: #b42318;
+    --color-success-light: #dff5e6;
+    --color-success-dark: #1f7a34;
+    --color-warning-light: #fff3cf;
+    --color-warning-dark: #8a5a00;
+    --color-error-light: #fde2e1;
+    --color-error-dark: #8f1d1a;
     
     /* Colores de Fondo */
-    --color-background: #ecf0f1;
+    --color-background: #f4f6f8;
     --color-background-dark: #34495e;
     --color-white: #ffffff;
-    --color-light-gray: #f8f9fa;
-    --color-gray: #95a5a6;
-    --color-dark-gray: #7f8c8d;
+    --color-light-gray: #eef1f4;
+    --color-gray: #a2acb4;
+    --color-dark-gray: #667085;
+    --color-border: #d7dde3;
     
     /* Colores de Texto */
-    --color-text: #2c3e50;
-    --color-text-light: #7f8c8d;
+    --color-text: #1f2937;
+    --color-text-dark: #101828;
+    --color-text-light: #667085;
     --color-text-white: #ffffff;
     
     /* Espaciado */
@@ -34,8 +44,8 @@
     --spacing-xxl: 48px;
     
     /* Fuentes */
-    --font-family: 'Arial', 'Helvetica', sans-serif;
-    --font-family-heading: 'Georgia', serif;
+    --font-family: 'Sora', 'Segoe UI', sans-serif;
+    --font-family-heading: 'Fraunces', 'Times New Roman', serif;
     
     /* Tamaños de Fuente */
     --font-size-xs: 12px;
