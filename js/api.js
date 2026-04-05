@@ -311,3 +311,48 @@ async function eliminarServicio(id) {
         return null;
     }
 }
+
+// ============================================
+// FUNCIONES PARA SERVICIOS EN RESERVAS
+// ============================================
+
+async function obtenerServiciosPorReserva(idReserva, estado = 1) {
+    apiLogger.log('Obteniendo servicios por reserva:', idReserva, 'estado:', estado);
+    try {
+        let endpoint = `/reservas/${idReserva}/servicios`;
+        if (estado !== undefined && estado !== null) {
+            endpoint += `?estado=${estado}`;
+        }
+        const data = await requestJson(endpoint);
+        return Array.isArray(data) ? data : (data?.value ? data.value : []);
+    } catch (error) {
+        apiLogger.error('Error al obtener servicios por reserva:', error.message);
+        return [];
+    }
+}
+
+async function agregarServicioAReserva(idReserva, servicioData) {
+    apiLogger.log('Agregando servicio a reserva:', idReserva, servicioData);
+    try {
+        return await requestJson(`/reservas/${idReserva}/servicios`, {
+            method: 'POST',
+            body: servicioData
+        });
+    } catch (error) {
+        apiLogger.error('Error al agregar servicio a reserva:', error.message);
+        return null;
+    }
+}
+
+async function quitarServicioDereserva(idReserva, idDetalleServicio) {
+    apiLogger.log('Quitando servicio de reserva:', idReserva, 'detalle:', idDetalleServicio);
+    try {
+        return await requestJson(`/reservas/${idReserva}/servicios/${idDetalleServicio}`, {
+            method: 'DELETE',
+            allowNoContent: true
+        });
+    } catch (error) {
+        apiLogger.error('Error al quitar servicio de reserva:', error.message);
+        return null;
+    }
+}

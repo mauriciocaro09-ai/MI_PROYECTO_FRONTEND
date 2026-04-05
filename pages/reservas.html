@@ -162,6 +162,55 @@
             </div>
         </section>
 
+        <!-- Sección de Servicios por Reserva -->
+        <section class="servicios-reserva-section">
+            <h3>🧖 Gestionar Servicios en Reservas</h3>
+            
+            <div class="servicios-reserva-container">
+                <!-- Selector de Reserva -->
+                <div class="servicios-selector">
+                    <label for="reserva-servicios-select">Seleccionar Reserva:</label>
+                    <select id="reserva-servicios-select">
+                        <option value="">Cargando reservas...</option>
+                    </select>
+                </div>
+                
+                <!-- Lista de Servicios Actuales -->
+                <div id="servicios-actuales-container" class="servicios-actuales hidden">
+                    <h4>Servicios Agregados</h4>
+                    <div id="servicios-actuales-list" class="servicios-list">
+                        <p>No hay servicios agregados</p>
+                    </div>
+                </div>
+                
+                <!-- Formulario para Agregar Servicio -->
+                <div id="agregar-servicio-container" class="agregar-servicio hidden">
+                    <h4>Agregar Nuevo Servicio</h4>
+                    <form id="form-agregar-servicio" class="form-agregar-servicio">
+                        <div class="form-group">
+                            <label for="servicio-select">Seleccionar Servicio:</label>
+                            <select id="servicio-select" required>
+                                <option value="">Cargando servicios...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="cantidad-servicio">Cantidad:</label>
+                            <input type="number" id="cantidad-servicio" min="1" value="1" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="precio-servicio">Precio Unitario (opcional):</label>
+                            <input type="number" id="precio-servicio" min="0" step="0.01" placeholder="Dejar en blanco para usar precio base">
+                        </div>
+                        
+                        <button type="submit" class="btn-agregar-servicio">✅ Agregar Servicio</button>
+                    </form>
+                    <div id="mensaje-servicio" class="mensaje-operacion"></div>
+                </div>
+            </div>
+        </section>
+
         <!-- Sección de Nueva Reserva -->
         <section class="nueva-reserva-section">
             <h3>📅 Nueva Reserva</h3>
@@ -577,6 +626,198 @@
                     }
                 });
             }
+            
+            // ============================================
+            // GESTIÓN DE SERVICIOS EN RESERVAS
+            // ============================================
+            
+            // Cargar reservas en el selector de servicios
+            async function cargarReservasParaServicios() {
+                const select = document.getElementById('reserva-servicios-select');
+                if (!select) return;
+                
+                try {
+                    const reservas = await obtenerReservas();
+                    console.log('Reservas para servicios:', reservas);
+                    
+                    select.innerHTML = '<option value="">Seleccionar reserva...</option>';
+                    
+                    if (Array.isArray(reservas) && reservas.length > 0) {
+                        reservas.forEach(reserva => {
+                            const option = document.createElement('option');
+                            option.value = reserva.IdReserva;
+                            const nombre = reserva.Nombre || 'Cliente desconocido';
+                            option.textContent = `Reserva #${reserva.IdReserva} - ${nombre} (${reserva.FechaInicio})`;
+                            select.appendChild(option);
+                        });
+                    } else {
+                        select.innerHTML += '<option value="">No hay reservas disponibles</option>';
+                    }
+                } catch (error) {
+                    console.error('Error al cargar reservas:', error);
+                    select.innerHTML = '<option value="">Error al cargar reservas</option>';
+                }
+            }
+            
+            // Cargar servicios disponibles
+            async function cargarServiciosDisponibles() {
+                const select = document.getElementById('servicio-select');
+                if (!select) return;
+                
+                try {
+                    const servicios = await obtenerServicios();
+                    console.log('Servicios disponibles:', servicios);
+                    
+                    select.innerHTML = '<option value="">Seleccionar servicio...</option>';
+                    
+                    if (Array.isArray(servicios) && servicios.length > 0) {
+                        servicios.forEach(servicio => {
+                            const option = document.createElement('option');
+                            option.value = servicio.IDServicio;
+                            option.textContent = `${servicio.NombreServicio} - $${servicio.Costo}`;
+                            option.dataset.costo = servicio.Costo;
+                            select.appendChild(option);
+                        });
+                    } else {
+                        select.innerHTML += '<option value="">No hay servicios disponibles</option>';
+                    }
+                } catch (error) {
+                    console.error('Error al cargar servicios:', error);
+                    select.innerHTML = '<option value="">Error al cargar servicios</option>';
+                }
+            }
+            
+            // Mostrar servicios actuales de una reserva
+            async function mostrarServiciosActuales(idReserva) {
+                const container = document.getElementById('servicios-actuales-container');
+                const list = document.getElementById('servicios-actuales-list');
+                
+                if (!idReserva) {
+                    container.classList.add('hidden');
+                    return;
+                }
+                
+                try {
+                    const servicios = await obtenerServiciosPorReserva(idReserva, 1);
+                    console.log('Servicios actuales de la reserva:', servicios);
+                    
+                    if (!servicios || servicios.length === 0) {
+                        list.innerHTML = '<p>No hay servicios agregados a esta reserva</p>';
+                        container.classList.remove('hidden');
+                        return;
+                    }
+                    
+                    let html = '';
+                    servicios.forEach(servicio => {
+                        html += `
+                            <div class="servicio-item">
+                                <div class="servicio-info">
+                                    <h5>${servicio.NombreServicio}</h5>
+                                    <p>${servicio.Descripcion}</p>
+                                    <p><strong>Cantidad:</strong> ${servicio.Cantidad} x $${servicio.Precio} = $${servicio.TotalLinea}</p>
+                                </div>
+                                <button type="button" class="btn-quitar-servicio" onclick="quitarServicio(${idReserva}, ${servicio.IDDetalleReservaServicio})">
+                                    🗑️ Quitar
+                                </button>
+                            </div>
+                        `;
+                    });
+                    
+                    list.innerHTML = html;
+                    container.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error al obtener servicios:', error);
+                    list.innerHTML = '<p>Error al cargar servicios</p>';
+                    container.classList.remove('hidden');
+                }
+            }
+            
+            // Quitar servicio de la reserva
+            window.quitarServicio = async function(idReserva, idDetalleServicio) {
+                if (!confirm('¿Estás seguro de que deseas quitar este servicio?')) {
+                    return;
+                }
+                
+                try {
+                    const resultado = await quitarServicioDereserva(idReserva, idDetalleServicio);
+                    
+                    if (resultado && resultado.success !== false) {
+                        alert('✅ Servicio quitado exitosamente');
+                        mostrarServiciosActuales(idReserva);
+                    } else {
+                        alert('❌ Error al quitar el servicio: ' + (resultado?.error || 'Error desconocido'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ Error al quitar el servicio');
+                }
+            };
+            
+            // Manejar evento del selector de reservas
+            const selectReserva = document.getElementById('reserva-servicios-select');
+            if (selectReserva) {
+                selectReserva.addEventListener('change', (e) => {
+                    const idReserva = e.target.value;
+                    const agregarContainer = document.getElementById('agregar-servicio-container');
+                    
+                    if (idReserva) {
+                        mostrarServiciosActuales(idReserva);
+                        agregarContainer.classList.remove('hidden');
+                    } else {
+                        document.getElementById('servicios-actuales-container').classList.add('hidden');
+                        agregarContainer.classList.add('hidden');
+                    }
+                });
+            }
+            
+            // Manejar formulario de agregar servicio
+            const formAgregarServicio = document.getElementById('form-agregar-servicio');
+            if (formAgregarServicio) {
+                formAgregarServicio.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const idReserva = document.getElementById('reserva-servicios-select').value;
+                    const idServicio = document.getElementById('servicio-select').value;
+                    const cantidad = parseInt(document.getElementById('cantidad-servicio').value);
+                    const precio = document.getElementById('precio-servicio').value
+                        ? parseFloat(document.getElementById('precio-servicio').value)
+                        : null;
+                    
+                    if (!idReserva || !idServicio) {
+                        alert('Por favor selecciona una reserva y un servicio');
+                        return;
+                    }
+                    
+                    try {
+                        const resultado = await agregarServicioAReserva(idReserva, {
+                            IDServicio: parseInt(idServicio),
+                            Cantidad: cantidad,
+                            Precio: precio
+                        });
+                        
+                        console.log('Resultado de agregar servicio:', resultado);
+                        
+                        if (resultado && resultado.message) {
+                            const mensaje = resultado.operation?.type === 'updated'
+                                ? '✅ Servicio actualizado (cantidad acumulada)'
+                                : '✅ Servicio agregado exitosamente';
+                            
+                            alert(mensaje);
+                            formAgregarServicio.reset();
+                            mostrarServiciosActuales(idReserva);
+                        } else {
+                            alert('❌ Error al agregar el servicio: ' + (resultado?.error || 'Error desconocido'));
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('❌ Error al agregar el servicio');
+                    }
+                });
+            }
+            
+            // Cargar servicios para el selector
+            cargarServiciosDisponibles();
+            cargarReservasParaServicios();
         });
     </script>
     
