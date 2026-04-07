@@ -103,8 +103,18 @@
 /* Modo Oscuro (opcional) */
 @media (prefers-color-scheme: dark) {
     :root {
-        --color-background: #1a1a1a;
-        --color-text: #f5f5f5;
-        --color-white: #2c2c2c;
+        --color-background: #111827;
+        --color-background-dark: #0b1220;
+        --color-white: #1f2937;
+        --color-light-gray: #334155;
+        --color-gray: #94a3b8;
+        --color-dark-gray: #cbd5e1;
+        --color-border: #475569;
+
+        --color-text: #f8fafc;
+        --color-text-dark: #ffffff;
+        --color-text-light: #d1d9e6;
+
+        --color-primary-light: #315f61;
     }
 }

@@ -47,6 +47,7 @@ header nav {
     align-items: center;
     max-width: var(--max-width-xl);
     margin: 0 auto;
+    gap: var(--spacing-md);
 }
 
 header nav h1 {
@@ -57,6 +58,73 @@ header nav h1 {
 header nav ul {
     display: flex;
     gap: var(--spacing-lg);
+}
+
+.btn-contraste {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--color-white);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--border-radius-full);
+    padding: 0.55rem 0.95rem;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.01em;
+    transition: background-color var(--transition-base), transform var(--transition-base), border-color var(--transition-base);
+    white-space: nowrap;
+}
+
+.btn-contraste:hover {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+}
+
+.btn-contraste.activo {
+    background: #ffd54d;
+    color: #1f2937;
+    border-color: #ffe082;
+}
+
+body.high-contrast {
+    --color-background: #ffffff;
+    --color-white: #ffffff;
+    --color-light-gray: #f2f4f7;
+    --color-border: #5b6473;
+    --color-text: #101828;
+    --color-text-dark: #0a0f1f;
+    --color-text-light: #344054;
+}
+
+body.high-contrast .hero {
+    background: linear-gradient(135deg, #0b1f2e, #b45309);
+}
+
+body.high-contrast .sidebar {
+    background: linear-gradient(180deg, #0b1f2e 0%, #111827 100%);
+}
+
+body.high-contrast .crud-habitaciones-subtitle,
+body.high-contrast .crud-habitaciones-note,
+body.high-contrast .habitacion-info .descripcion,
+body.high-contrast .crud-habitaciones-descripcion,
+body.high-contrast .mensaje-vacio,
+body.high-contrast .toast-message {
+    color: #243043;
+}
+
+body.high-contrast input,
+body.high-contrast textarea,
+body.high-contrast select {
+    border-color: #667085 !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+}
+
+body.high-contrast input::placeholder,
+body.high-contrast textarea::placeholder {
+    color: #344054;
+    opacity: 1;
 }
 
 header nav a {
@@ -94,6 +162,14 @@ header nav a:hover {
 .hero p {
     font-size: var(--font-size-lg);
     opacity: 0.9;
+}
+
+/* ============================================
+   HELPERS
+   ============================================ */
+
+.hidden {
+    display: none !important;
 }
 
 /* ============================================
@@ -154,6 +230,16 @@ header nav a:hover {
     font-size: 1rem;
     background: #fff;
     color: #0f172a;
+}
+
+.form-busqueda-reservas input::placeholder,
+.crud-habitaciones-form input::placeholder,
+.crud-habitaciones-form textarea::placeholder,
+.crud-habitaciones-filtros input::placeholder,
+form input::placeholder,
+form textarea::placeholder {
+    color: #475467;
+    opacity: 1;
 }
 
 .form-busqueda-reservas button {
@@ -337,6 +423,417 @@ header nav a:hover {
 
 .btn-ver:hover {
     background-color: var(--color-primary);
+}
+
+/* ============================================
+   CRUD - HABITACIONES
+   ============================================ */
+
+.crud-habitaciones-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.crud-habitaciones-header {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.crud-habitaciones-header h3 {
+    font-size: var(--font-size-xxl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.crud-habitaciones-subtitle,
+.crud-habitaciones-note {
+    color: var(--color-text-light);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.crud-habitaciones-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.btn-accion-crud {
+    padding: 0.85rem 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform var(--transition-base), box-shadow var(--transition-base), opacity var(--transition-base);
+}
+
+.btn-accion-crud:hover {
+    transform: translateY(-1px);
+}
+
+.btn-accion-principal {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: var(--color-white);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.2);
+}
+
+.btn-accion-secundaria {
+    background: var(--color-light-gray);
+    color: var(--color-text);
+}
+
+.crud-habitaciones-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.crud-habitaciones-summary article {
+    background: var(--color-white);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.crud-habitaciones-summary span {
+    display: block;
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.crud-habitaciones-summary strong {
+    font-size: 2rem;
+    color: var(--color-primary);
+}
+
+.crud-habitaciones-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: var(--spacing-lg);
+}
+
+.crud-habitaciones-panel {
+    background: var(--color-white);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.crud-habitaciones-panel h4 {
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.crud-habitaciones-form {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.crud-habitaciones-form label {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.crud-habitaciones-form input,
+.crud-habitaciones-form textarea,
+.crud-habitaciones-form select,
+.crud-habitaciones-filtros input,
+.crud-habitaciones-filtros select {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: var(--color-white);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.crud-habitaciones-form textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+.crud-habitaciones-form input:focus,
+.crud-habitaciones-form textarea:focus,
+.crud-habitaciones-form select:focus,
+.crud-habitaciones-filtros input:focus,
+.crud-habitaciones-filtros select:focus {
+    outline: none;
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.crud-habitaciones-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.crud-habitaciones-mensaje {
+    margin-top: var(--spacing-md);
+    min-height: 1.5rem;
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+}
+
+.crud-habitaciones-mensaje.exito {
+    color: var(--color-success);
+}
+
+.crud-habitaciones-mensaje.error {
+    color: var(--color-danger);
+}
+
+.crud-habitaciones-preview {
+    margin-top: 0.25rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: #f8fafc;
+}
+
+.crud-habitaciones-preview p {
+    margin: 0 0 0.5rem;
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+}
+
+.crud-habitaciones-preview img {
+    width: 100%;
+    max-height: 190px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.crud-habitaciones-panel-lista {
+    overflow: hidden;
+}
+
+.crud-habitaciones-lista-top {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+}
+
+.crud-habitaciones-filtros {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.crud-habitaciones-filtros input {
+    min-width: 240px;
+}
+
+.crud-habitaciones-tabla-wrap {
+    overflow: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.crud-habitaciones-tabla {
+    width: 100%;
+    min-width: 920px;
+    border-collapse: collapse;
+}
+
+.crud-habitaciones-tabla thead th {
+    background: #f8fafc;
+    color: var(--color-primary);
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.crud-habitaciones-tabla tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: top;
+    color: var(--color-text);
+}
+
+.crud-habitaciones-tabla tbody tr:hover {
+    background: #f8fafc;
+}
+
+.crud-habitaciones-imagen {
+    width: 96px;
+    height: 70px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--color-light-gray);
+    display: grid;
+    place-items: center;
+    color: var(--color-text-light);
+    font-size: var(--font-size-xs);
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.crud-habitaciones-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.crud-habitaciones-nombre {
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 0.35rem;
+}
+
+.crud-habitaciones-descripcion {
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.crud-habitaciones-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.crud-estado-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.switch-estado {
+    position: relative;
+    display: inline-flex;
+    width: 48px;
+    height: 28px;
+}
+
+.switch-estado input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 999px;
+    transition: background-color var(--transition-base);
+    cursor: pointer;
+}
+
+.switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform var(--transition-base);
+}
+
+.switch-estado input:checked + .switch-slider {
+    background: #22c55e;
+}
+
+.switch-estado input:checked + .switch-slider::before {
+    transform: translateX(20px);
+}
+
+.switch-estado input:disabled + .switch-slider {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.btn-mini {
+    padding: 0.55rem 0.75rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.btn-mini-editar {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.btn-mini-eliminar {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.estado.estado-disponible {
+    background: var(--color-success);
+    color: var(--color-white);
+}
+
+.estado.estado-no-disponible {
+    background: var(--color-warning);
+    color: var(--color-white);
+}
+
+@media (max-width: 1024px) {
+    .crud-habitaciones-header,
+    .crud-habitaciones-lista-top {
+        flex-direction: column;
+    }
+
+    .crud-habitaciones-actions,
+    .crud-habitaciones-filtros {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .crud-habitaciones-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .crud-habitaciones-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .crud-habitaciones-filtros input,
+    .crud-habitaciones-filtros select {
+        min-width: 100%;
+    }
+
+    .crud-habitaciones-tabla {
+        min-width: 760px;
+    }
 }
 
 /* ============================================
@@ -701,7 +1198,7 @@ form button[type="submit"]:hover {
 }
 
 .sidebar-nav h3 {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.88);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -723,7 +1220,7 @@ form button[type="submit"]:hover {
     display: flex;
     align-items: center;
     padding: var(--spacing-sm) var(--spacing-md);
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.96);
     text-decoration: none;
     border-radius: var(--border-radius-sm);
     transition: all var(--transition-base);
@@ -755,7 +1252,7 @@ form button[type="submit"]:hover {
 }
 
 .sidebar-footer p {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.82);
     font-size: var(--font-size-sm);
     margin: 0;
 }
@@ -777,7 +1274,7 @@ form button[type="submit"]:hover {
 }
 
 .gallery-subtitle {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.86);
     font-size: 12px;
     margin-bottom: var(--spacing-sm);
 }
@@ -870,7 +1367,7 @@ form button[type="submit"]:hover {
 }
 
 .gallery-item-info p {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.88);
     font-size: 10px;
     margin: 2px 0 0 0;
 }
@@ -929,7 +1426,7 @@ form button[type="submit"]:hover {
 
 /* Mensaje cuando no hay habitaciones */
 .sidebar-gallery .mensaje-vacio {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 12px;
     text-align: center;
     padding: var(--spacing-md);
@@ -991,7 +1488,7 @@ form button[type="submit"]:hover {
 }
 
 .cliente-item-info p {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.88);
     font-size: 10px;
     margin: 0;
 }

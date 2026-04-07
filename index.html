@@ -35,6 +35,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="#" onclick="cargarSeccion('administrar-habitaciones', event)">
+                        <span class="icon">🛠️</span>
+                        <span class="text">Administrar habitaciones</span>
+                    </a>
+                </li>
+                <li>
                     <a href="#" onclick="cargarSeccion('clientes', event)">
                         <span class="icon">👥</span>
                         <span class="text">Clientes</span>
@@ -128,6 +134,9 @@
                     <li><a href="pages/reservas.html">Reservas</a></li>
                     <li><a href="pages/contacto.html">Contacto</a></li>
                 </ul>
+                <button id="toggle-contraste" class="btn-contraste" type="button" aria-pressed="false">
+                    Alto contraste: OFF
+                </button>
             </nav>
         </header>
 
@@ -144,6 +153,129 @@
                 <h3>Habitaciones Disponibles</h3>
                 <div id="habitaciones" class="habitaciones-grid">
                     <p class="mensaje-vacio">Cargando habitaciones...</p>
+                </div>
+            </section>
+
+            <!-- Sección CRUD de Habitaciones -->
+            <section id="seccion-administrar-habitaciones" class="crud-habitaciones-section hidden">
+                <div class="crud-habitaciones-header">
+                    <div>
+                        <h3>Administración de habitaciones</h3>
+                        <p class="crud-habitaciones-subtitle">Crea, actualiza y elimina registros de la tabla <strong>habitacion</strong> sin salir del frontend.</p>
+                    </div>
+                    <div class="crud-habitaciones-actions">
+                        <button type="button" class="btn-accion-crud btn-accion-principal" id="btn-habitaciones-admin-recargar">Recargar listado</button>
+                        <button type="button" class="btn-accion-crud" onclick="document.getElementById('form-habitacion-admin').scrollIntoView({ behavior: 'smooth', block: 'start' })">Nuevo registro</button>
+                    </div>
+                </div>
+
+                <div class="crud-habitaciones-summary">
+                    <article>
+                        <span>Total</span>
+                        <strong id="habitaciones-admin-total">0</strong>
+                    </article>
+                    <article>
+                        <span>Disponibles</span>
+                        <strong id="habitaciones-admin-disponibles">0</strong>
+                    </article>
+                    <article>
+                        <span>No disponibles</span>
+                        <strong id="habitaciones-admin-no-disponibles">0</strong>
+                    </article>
+                </div>
+
+                <div class="crud-habitaciones-layout">
+                    <section class="crud-habitaciones-panel">
+                        <h4 id="habitacion-admin-form-title">Crear habitación</h4>
+                        <p class="crud-habitaciones-note">Los campos están alineados con la estructura real de la base de datos.</p>
+
+                        <form id="form-habitacion-admin" class="crud-habitaciones-form">
+                            <input type="hidden" id="habitacion-admin-id">
+
+                            <label>
+                                Nombre de la habitación
+                                <input type="text" id="habitacion-admin-nombre" required maxlength="30" placeholder="Ej. Suite Premium">
+                            </label>
+
+                            <label>
+                                Descripción
+                                <textarea id="habitacion-admin-descripcion" required maxlength="50" placeholder="Describe la habitación en pocas palabras"></textarea>
+                            </label>
+
+                            <label>
+                                Costo
+                                <input type="number" id="habitacion-admin-costo" required min="0" step="0.01" placeholder="Ej. 250000">
+                            </label>
+
+                            <label>
+                                Estado
+                                <select id="habitacion-admin-estado" required>
+                                    <option value="1">Disponible</option>
+                                    <option value="0">No disponible</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                Imagen
+                                <input type="text" id="habitacion-admin-imagen" placeholder="URL, base64 o valor guardado en BD">
+                            </label>
+
+                            <label>
+                                Subir imagen (opcional)
+                                <input type="file" id="habitacion-admin-imagen-archivo" accept="image/*">
+                            </label>
+
+                            <div id="habitacion-admin-preview-wrap" class="crud-habitaciones-preview hidden">
+                                <p>Vista previa:</p>
+                                <img id="habitacion-admin-preview" alt="Vista previa de habitación">
+                            </div>
+
+                            <div class="crud-habitaciones-form-actions">
+                                <button type="submit" class="btn-accion-crud btn-accion-principal" id="btn-habitacion-admin-guardar">Guardar habitación</button>
+                                <button type="button" class="btn-accion-crud btn-accion-secundaria" id="btn-habitacion-admin-limpiar">Limpiar formulario</button>
+                            </div>
+                        </form>
+
+                        <div id="mensaje-habitacion-admin" class="crud-habitaciones-mensaje" aria-live="polite"></div>
+                    </section>
+
+                    <section class="crud-habitaciones-panel crud-habitaciones-panel-lista">
+                        <div class="crud-habitaciones-lista-top">
+                            <div>
+                                <h4>Listado</h4>
+                                <p class="crud-habitaciones-note">Busca por nombre, descripción o estado y usa las acciones por fila.</p>
+                            </div>
+
+                            <div class="crud-habitaciones-filtros">
+                                <input type="search" id="busqueda-habitaciones-admin" placeholder="Buscar habitación">
+                                <select id="filtro-estado-habitaciones-admin" aria-label="Filtrar habitaciones por estado">
+                                    <option value="all">Todos</option>
+                                    <option value="available">Disponibles</option>
+                                    <option value="unavailable">No disponibles</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="crud-habitaciones-tabla-wrap">
+                            <table class="crud-habitaciones-tabla">
+                                <thead>
+                                    <tr>
+                                        <th>Imagen</th>
+                                        <th>Nombre</th>
+                                        <th>Costo</th>
+                                        <th>Estado</th>
+                                        <th>Descripción</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="habitaciones-admin-tbody">
+                                    <tr>
+                                        <td colspan="6" class="mensaje-vacio">Cargando habitaciones...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 </div>
             </section>
 
@@ -263,6 +395,7 @@
             
             const secciones = [
                 'seccion-habitaciones',
+                    'seccion-administrar-habitaciones',
                 'seccion-clientes',
                 'seccion-reservas',
                 'seccion-servicios'
@@ -286,6 +419,10 @@
                 // Cargar los datos según la sección
                 if (seccion === 'habitaciones') {
                     cargarHabitaciones();
+                } else if (seccion === 'administrar-habitaciones') {
+                    if (typeof cargarHabitacionesAdmin === 'function') {
+                        cargarHabitacionesAdmin();
+                    }
                 } else if (seccion === 'clientes') {
                     cargarClientes();
                 } else if (seccion === 'reservas') {

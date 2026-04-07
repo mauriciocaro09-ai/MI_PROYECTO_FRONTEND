@@ -5,9 +5,13 @@
 // Variable para controlar el carrusel
 let carruselIndex = 0;
 let habitacionesCargadas = [];
+let habitacionesAdminCargadas = [];
+let habitacionAdminImagenArchivoBase64 = '';
 let reservasCargadas = [];
 let estadosReservaCargados = [];
 let lastShownApiError = null;
+
+const CLAVE_CONTRASTE_ALTO = 'hospedaje_alto_contraste';
 
 const normalizarTexto = (valor) => String(valor ?? '').trim().toLowerCase();
 
@@ -135,6 +139,11 @@ function obtenerUrlImagen(valor) {
     if (typeof valor === 'string') {
         // Validar que sea una URL válida o ruta válida
         if (valor.trim() === '') return imagenDefault;
+
+        // Aceptar data URL (base64) para imágenes subidas desde el formulario CRUD
+        if (valor.startsWith('data:image/')) {
+            return valor;
+        }
         
         // Verificar si es una URL válida
         if (valor.startsWith('http://') || valor.startsWith('https://')) {
@@ -457,6 +466,7 @@ function mostrarHabitaciones(habitaciones) {
         card.className = 'habitacion-card';
         // Usar la función para obtener la URL correcta
         const imagenUrl = obtenerUrlImagen(habitacion.ImagenHabitacion);
+        const estadoInfo = normalizarEstadoHabitacion(habitacion.Estado);
         card.innerHTML = `
             <div class="habitacion-imagen">
                 <img src="${imagenUrl}" 
@@ -467,7 +477,7 @@ function mostrarHabitaciones(habitaciones) {
                 <h3>${habitacion.NombreHabitacion}</h3>
                 <p class="descripcion">${habitacion.Descripcion || 'Sin descripción'}</p>
                 <p class="precio">$${habitacion.Costo} / noche</p>
-                <span class="estado ${String(habitacion.Estado || 'disponible').toLowerCase()}">${habitacion.Estado || 'disponible'}</span>
+                <span class="estado ${estadoInfo.clase}">${estadoInfo.texto}</span>
                 <button onclick="verDetalles(${habitacion.IDHabitacion})" class="btn-ver">Ver Detalles</button>
             </div>
         `;
@@ -661,6 +671,604 @@ async function cargarServicios() {
 }
 
 // ============================================
+// CRUD DE HABITACIONES
+// ============================================
+
+const normalizarEstadoHabitacion = (estado) => {
+    if (estado === 1 || estado === '1' || estado === true) {
+        return { activo: true, texto: 'Disponible', clase: 'estado-disponible' };
+    }
+
+    if (typeof estado === 'string') {
+        const valor = normalizarTexto(estado);
+        if (['disponible', 'activo', 'activa', 'available', 'true', 'si', 'sí'].includes(valor)) {
+            return { activo: true, texto: 'Disponible', clase: 'estado-disponible' };
+        }
+    }
+
+    return { activo: false, texto: 'No disponible', clase: 'estado-no-disponible' };
+};
+
+const formatearCostoHabitacion = (valor) => {
+    const numero = Number(valor);
+    if (Number.isNaN(numero)) return 'Sin costo';
+
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+    }).format(numero);
+};
+
+const obtenerIdHabitacion = (habitacion) => habitacion?.IDHabitacion || habitacion?.id || habitacion?.IdHabitacion || '';
+
+const escaparHtml = (valor) => String(valor ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+const obtenerImagenParaPayload = (habitacion) => {
+    const valor = habitacion?.ImagenHabitacion;
+
+    if (typeof valor === 'string') {
+        return valor;
+    }
+
+    if (valor && valor.type === 'Buffer' && Array.isArray(valor.data)) {
+        try {
+            let str = '';
+            for (let i = 0; i < valor.data.length; i += 1) {
+                str += String.fromCharCode(valor.data[i]);
+            }
+            return str || null;
+        } catch (error) {
+            console.warn('No se pudo convertir ImagenHabitacion Buffer a string:', error);
+            return null;
+        }
+    }
+
+    return null;
+};
+
+const mostrarMensajeHabitacionAdmin = (texto, tipo = 'info') => {
+    const mensaje = document.getElementById('mensaje-habitacion-admin');
+    if (!mensaje) return;
+
+    mensaje.textContent = texto || '';
+    mensaje.className = 'crud-habitaciones-mensaje';
+
+    if (tipo === 'ok') {
+        mensaje.classList.add('exito');
+    } else if (tipo === 'error') {
+        mensaje.classList.add('error');
+    }
+};
+
+const mostrarPreviewHabitacionAdmin = (src) => {
+    const wrap = document.getElementById('habitacion-admin-preview-wrap');
+    const imagen = document.getElementById('habitacion-admin-preview');
+
+    if (!wrap || !imagen) return;
+
+    if (!src) {
+        wrap.classList.add('hidden');
+        imagen.removeAttribute('src');
+        return;
+    }
+
+    imagen.src = src;
+    wrap.classList.remove('hidden');
+};
+
+const leerArchivoComoDataUrl = (archivo) => {
+    return new Promise((resolve, reject) => {
+        const lector = new FileReader();
+        lector.onload = () => resolve(String(lector.result || ''));
+        lector.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado'));
+        lector.readAsDataURL(archivo);
+    });
+};
+
+async function manejarArchivoHabitacionAdmin(event) {
+    const archivo = event?.target?.files?.[0];
+
+    if (!archivo) {
+        habitacionAdminImagenArchivoBase64 = '';
+        const imagenTexto = document.getElementById('habitacion-admin-imagen')?.value?.trim();
+        if (imagenTexto) {
+            mostrarPreviewHabitacionAdmin(obtenerUrlImagen(imagenTexto));
+        } else {
+            mostrarPreviewHabitacionAdmin('');
+        }
+        return;
+    }
+
+    const tamanoMaximo = 2 * 1024 * 1024;
+    if (archivo.size > tamanoMaximo) {
+        event.target.value = '';
+        habitacionAdminImagenArchivoBase64 = '';
+        mostrarPreviewHabitacionAdmin('');
+        mostrarMensajeHabitacionAdmin('La imagen supera 2MB. Usa un archivo más liviano.', 'error');
+        return;
+    }
+
+    try {
+        const dataUrl = await leerArchivoComoDataUrl(archivo);
+        habitacionAdminImagenArchivoBase64 = dataUrl;
+        mostrarPreviewHabitacionAdmin(dataUrl);
+        mostrarMensajeHabitacionAdmin('Imagen cargada correctamente. Se usará al guardar.', 'ok');
+    } catch (error) {
+        console.error(error);
+        habitacionAdminImagenArchivoBase64 = '';
+        mostrarPreviewHabitacionAdmin('');
+        mostrarMensajeHabitacionAdmin('No se pudo procesar la imagen seleccionada.', 'error');
+    }
+}
+
+const aplicarModoContraste = (activo) => {
+    const body = document.body;
+    const boton = document.getElementById('toggle-contraste');
+
+    if (!body) return;
+
+    body.classList.toggle('high-contrast', activo);
+
+    if (boton) {
+        boton.classList.toggle('activo', activo);
+        boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+        boton.textContent = `Alto contraste: ${activo ? 'ON' : 'OFF'}`;
+    }
+};
+
+function configurarModoContraste() {
+    const boton = document.getElementById('toggle-contraste');
+    const preferenciaGuardada = localStorage.getItem(CLAVE_CONTRASTE_ALTO) === 'true';
+
+    aplicarModoContraste(preferenciaGuardada);
+
+    if (!boton || boton.dataset.contrasteInicializado) {
+        return;
+    }
+
+    boton.addEventListener('click', () => {
+        const estaActivo = document.body.classList.contains('high-contrast');
+        const nuevoEstado = !estaActivo;
+
+        aplicarModoContraste(nuevoEstado);
+        localStorage.setItem(CLAVE_CONTRASTE_ALTO, nuevoEstado ? 'true' : 'false');
+    });
+
+    boton.dataset.contrasteInicializado = 'true';
+}
+
+const actualizarResumenHabitacionesAdmin = (habitaciones) => {
+    const total = document.getElementById('habitaciones-admin-total');
+    const disponibles = document.getElementById('habitaciones-admin-disponibles');
+    const noDisponibles = document.getElementById('habitaciones-admin-no-disponibles');
+
+    const lista = Array.isArray(habitaciones) ? habitaciones : [];
+    const totalHabitaciones = lista.length;
+    const habitacionesDisponibles = lista.filter((habitacion) => normalizarEstadoHabitacion(habitacion.Estado).activo).length;
+    const habitacionesNoDisponibles = totalHabitaciones - habitacionesDisponibles;
+
+    if (total) total.textContent = totalHabitaciones;
+    if (disponibles) disponibles.textContent = habitacionesDisponibles;
+    if (noDisponibles) noDisponibles.textContent = habitacionesNoDisponibles;
+};
+
+const obtenerFiltrosHabitacionesAdmin = () => {
+    const busqueda = document.getElementById('busqueda-habitaciones-admin');
+    const filtroEstado = document.getElementById('filtro-estado-habitaciones-admin');
+
+    return {
+        termino: normalizarTexto(busqueda?.value),
+        estado: filtroEstado?.value || 'all'
+    };
+};
+
+const habitacionesAdminCoinciden = (habitacion, filtros) => {
+    const textoBusqueda = [
+        habitacion.NombreHabitacion,
+        habitacion.Descripcion,
+        habitacion.Estado,
+        habitacion.Costo,
+        obtenerIdHabitacion(habitacion)
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+    const coincideTexto = !filtros.termino || textoBusqueda.includes(filtros.termino);
+    const estadoNormalizado = normalizarEstadoHabitacion(habitacion.Estado);
+
+    if (filtros.estado === 'available' && !estadoNormalizado.activo) return false;
+    if (filtros.estado === 'unavailable' && estadoNormalizado.activo) return false;
+
+    return coincideTexto;
+};
+
+const renderizarHabitacionesAdmin = () => {
+    const contenedor = document.getElementById('habitaciones-admin-tbody');
+    if (!contenedor) return;
+
+    const filtros = obtenerFiltrosHabitacionesAdmin();
+    const habitacionesFiltradas = habitacionesAdminCargadas.filter((habitacion) => habitacionesAdminCoinciden(habitacion, filtros));
+
+    actualizarResumenHabitacionesAdmin(habitacionesAdminCargadas);
+
+    if (habitacionesFiltradas.length === 0) {
+        contenedor.innerHTML = `
+            <tr>
+                <td colspan="6" class="mensaje-vacio">No hay habitaciones que coincidan con el filtro actual.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    contenedor.innerHTML = habitacionesFiltradas.map((habitacion) => {
+        const idHabitacion = obtenerIdHabitacion(habitacion);
+        const estado = normalizarEstadoHabitacion(habitacion.Estado);
+        const imagenUrl = obtenerUrlImagen(habitacion.ImagenHabitacion);
+        const switchId = `switch-habitacion-${idHabitacion}`;
+
+        return `
+            <tr>
+                <td>
+                    <div class="crud-habitaciones-imagen">
+                        <img src="${imagenUrl}" alt="${escaparHtml(habitacion.NombreHabitacion || 'Habitación')}" onerror="this.src='assets/images/default.svg'">
+                    </div>
+                </td>
+                <td>
+                    <div class="crud-habitaciones-nombre">${escaparHtml(habitacion.NombreHabitacion || 'Sin nombre')}</div>
+                    <div class="crud-habitaciones-descripcion">ID: ${escaparHtml(idHabitacion)}</div>
+                </td>
+                <td><strong>${formatearCostoHabitacion(habitacion.Costo)}</strong></td>
+                <td>
+                    <div class="crud-estado-control">
+                        <label class="switch-estado" for="${escaparHtml(switchId)}">
+                            <input
+                                id="${escaparHtml(switchId)}"
+                                type="checkbox"
+                                data-accion-habitacion-estado="toggle"
+                                data-id="${escaparHtml(idHabitacion)}"
+                                ${estado.activo ? 'checked' : ''}
+                                aria-label="Cambiar estado de ${escaparHtml(habitacion.NombreHabitacion || 'habitación')}"
+                            >
+                            <span class="switch-slider"></span>
+                        </label>
+                        <span class="estado ${estado.clase}">${estado.texto}</span>
+                    </div>
+                </td>
+                <td class="crud-habitaciones-descripcion">${escaparHtml(habitacion.Descripcion || 'Sin descripción')}</td>
+                <td>
+                    <div class="crud-habitaciones-acciones">
+                        <button type="button" class="btn-mini btn-mini-editar" data-accion-habitacion="editar" data-id="${escaparHtml(idHabitacion)}">Editar</button>
+                        <button type="button" class="btn-mini btn-mini-eliminar" data-accion-habitacion="eliminar" data-id="${escaparHtml(idHabitacion)}">Eliminar</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+async function cambiarEstadoHabitacionAdmin(id, nuevoEstado, inputToggle = null) {
+    const habitacion = habitacionesAdminCargadas.find((item) => String(obtenerIdHabitacion(item)) === String(id));
+    if (!habitacion) {
+        if (inputToggle) {
+            inputToggle.checked = !nuevoEstado;
+            inputToggle.disabled = false;
+        }
+        mostrarMensajeHabitacionAdmin('No se encontró la habitación para cambiar estado.', 'error');
+        return;
+    }
+
+    try {
+        if (inputToggle) {
+            inputToggle.disabled = true;
+        }
+
+        const payload = {
+            NombreHabitacion: habitacion.NombreHabitacion,
+            Descripcion: habitacion.Descripcion,
+            Costo: Number(habitacion.Costo),
+            Estado: nuevoEstado ? 1 : 0,
+            ImagenHabitacion: obtenerImagenParaPayload(habitacion)
+        };
+
+        const resultado = await actualizarHabitacion(id, payload);
+        if (!resultado) {
+            throw new Error('No se pudo actualizar el estado de la habitación');
+        }
+
+        habitacion.Estado = nuevoEstado ? 1 : 0;
+        renderizarHabitacionesAdmin();
+        mostrarMensajeHabitacionAdmin(`Estado actualizado: ${habitacion.NombreHabitacion} ${nuevoEstado ? 'habilitada' : 'inhabilitada'}.`, 'ok');
+
+        if (typeof cargarHabitaciones === 'function') {
+            await cargarHabitaciones();
+        }
+
+        if (typeof cargarHabitacionesSidebar === 'function') {
+            cargarHabitacionesSidebar();
+        }
+    } catch (error) {
+        console.error('Error al cambiar estado de habitación:', error);
+        if (inputToggle) {
+            inputToggle.checked = !nuevoEstado;
+        }
+        mostrarMensajeHabitacionAdmin(error.message || 'No se pudo actualizar el estado', 'error');
+    } finally {
+        if (inputToggle) {
+            inputToggle.disabled = false;
+        }
+    }
+}
+
+const limpiarFormularioHabitacionAdmin = (mostrarMensaje = true) => {
+    const formulario = document.getElementById('form-habitacion-admin');
+    const campoId = document.getElementById('habitacion-admin-id');
+    const campoNombre = document.getElementById('habitacion-admin-nombre');
+    const campoDescripcion = document.getElementById('habitacion-admin-descripcion');
+    const campoCosto = document.getElementById('habitacion-admin-costo');
+    const campoEstado = document.getElementById('habitacion-admin-estado');
+    const campoImagen = document.getElementById('habitacion-admin-imagen');
+    const campoImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
+    const titulo = document.getElementById('habitacion-admin-form-title');
+    const botonGuardar = document.getElementById('btn-habitacion-admin-guardar');
+
+    if (formulario) formulario.reset();
+    if (campoId) campoId.value = '';
+    if (campoNombre) campoNombre.value = '';
+    if (campoDescripcion) campoDescripcion.value = '';
+    if (campoCosto) campoCosto.value = '';
+    if (campoEstado) campoEstado.value = '1';
+    if (campoImagen) campoImagen.value = '';
+    if (campoImagenArchivo) campoImagenArchivo.value = '';
+    if (titulo) titulo.textContent = 'Crear habitación';
+    if (botonGuardar) botonGuardar.textContent = 'Guardar habitación';
+    habitacionAdminImagenArchivoBase64 = '';
+    mostrarPreviewHabitacionAdmin('');
+
+    if (mostrarMensaje) {
+        mostrarMensajeHabitacionAdmin('Formulario listo para crear una nueva habitación.');
+    }
+};
+
+const cargarHabitacionEnFormularioAdmin = (habitacion) => {
+    const campoId = document.getElementById('habitacion-admin-id');
+    const campoNombre = document.getElementById('habitacion-admin-nombre');
+    const campoDescripcion = document.getElementById('habitacion-admin-descripcion');
+    const campoCosto = document.getElementById('habitacion-admin-costo');
+    const campoEstado = document.getElementById('habitacion-admin-estado');
+    const campoImagen = document.getElementById('habitacion-admin-imagen');
+    const campoImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
+    const titulo = document.getElementById('habitacion-admin-form-title');
+    const botonGuardar = document.getElementById('btn-habitacion-admin-guardar');
+    const formulario = document.getElementById('form-habitacion-admin');
+
+    if (!habitacion) return;
+
+    if (campoId) campoId.value = obtenerIdHabitacion(habitacion);
+    if (campoNombre) campoNombre.value = habitacion.NombreHabitacion || '';
+    if (campoDescripcion) campoDescripcion.value = habitacion.Descripcion || '';
+    if (campoCosto) campoCosto.value = habitacion.Costo ?? '';
+    if (campoEstado) campoEstado.value = normalizarEstadoHabitacion(habitacion.Estado).activo ? '1' : '0';
+    if (campoImagen) campoImagen.value = typeof habitacion.ImagenHabitacion === 'string' ? habitacion.ImagenHabitacion : '';
+    if (campoImagenArchivo) campoImagenArchivo.value = '';
+    habitacionAdminImagenArchivoBase64 = '';
+    mostrarPreviewHabitacionAdmin(campoImagen?.value ? obtenerUrlImagen(campoImagen.value) : '');
+    if (titulo) titulo.textContent = `Editar habitación #${obtenerIdHabitacion(habitacion)}`;
+    if (botonGuardar) botonGuardar.textContent = 'Actualizar habitación';
+
+    mostrarMensajeHabitacionAdmin(`Editando ${habitacion.NombreHabitacion || 'la habitación seleccionada'}.`, 'ok');
+
+    if (formulario) {
+        formulario.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
+
+async function cargarHabitacionesAdmin() {
+    const contenedor = document.getElementById('habitaciones-admin-tbody');
+    if (!contenedor) return;
+
+    try {
+        mostrarMensajeHabitacionAdmin('Cargando habitaciones...');
+        habitacionesAdminCargadas = await obtenerHabitaciones();
+        renderizarHabitacionesAdmin();
+        mostrarMensajeHabitacionAdmin(`Se cargaron ${habitacionesAdminCargadas.length} habitaciones.`, 'ok');
+    } catch (error) {
+        console.error('Error al cargar habitaciones para el CRUD:', error);
+        habitacionesAdminCargadas = [];
+        contenedor.innerHTML = `
+            <tr>
+                <td colspan="6" class="mensaje-vacio">Error al cargar habitaciones</td>
+            </tr>
+        `;
+        mostrarMensajeHabitacionAdmin('No se pudieron cargar las habitaciones.', 'error');
+    }
+}
+
+async function guardarHabitacionAdmin(event) {
+    event.preventDefault();
+
+    const campoId = document.getElementById('habitacion-admin-id');
+    const campoNombre = document.getElementById('habitacion-admin-nombre');
+    const campoDescripcion = document.getElementById('habitacion-admin-descripcion');
+    const campoCosto = document.getElementById('habitacion-admin-costo');
+    const campoEstado = document.getElementById('habitacion-admin-estado');
+    const campoImagen = document.getElementById('habitacion-admin-imagen');
+    const botonGuardar = document.getElementById('btn-habitacion-admin-guardar');
+
+    const idHabitacion = campoId?.value?.trim();
+    const nombreHabitacion = campoNombre?.value?.trim();
+    const descripcion = campoDescripcion?.value?.trim();
+    const costo = campoCosto?.value;
+    const estado = campoEstado?.value ?? '1';
+    const imagenHabitacion = campoImagen?.value?.trim();
+    const imagenFinal = habitacionAdminImagenArchivoBase64 || imagenHabitacion || null;
+
+    if (!nombreHabitacion || !descripcion || !costo) {
+        mostrarMensajeHabitacionAdmin('Nombre, descripción y costo son obligatorios.', 'error');
+        return;
+    }
+
+    try {
+        if (botonGuardar) botonGuardar.disabled = true;
+        mostrarMensajeHabitacionAdmin(idHabitacion ? 'Actualizando habitación...' : 'Creando habitación...');
+
+        const payload = {
+            NombreHabitacion: nombreHabitacion,
+            Descripcion: descripcion,
+            Costo: Number(costo),
+            Estado: Number(estado),
+            ImagenHabitacion: imagenFinal
+        };
+
+        const resultado = idHabitacion
+            ? await actualizarHabitacion(idHabitacion, payload)
+            : await crearHabitacion(payload);
+
+        if (!resultado) {
+            throw new Error('No se pudo guardar la habitación');
+        }
+
+        limpiarFormularioHabitacionAdmin(false);
+        await cargarHabitacionesAdmin();
+        mostrarMensajeHabitacionAdmin(idHabitacion ? 'Habitación actualizada correctamente.' : 'Habitación creada correctamente.', 'ok');
+
+        if (typeof cargarHabitaciones === 'function') {
+            await cargarHabitaciones();
+        }
+
+        if (typeof cargarHabitacionesSidebar === 'function') {
+            cargarHabitacionesSidebar();
+        }
+    } catch (error) {
+        console.error('Error al guardar habitación:', error);
+        mostrarMensajeHabitacionAdmin(error.message || 'Error al guardar la habitación', 'error');
+    } finally {
+        if (botonGuardar) botonGuardar.disabled = false;
+    }
+}
+
+async function eliminarHabitacionAdmin(id) {
+    const habitacion = habitacionesAdminCargadas.find((item) => String(obtenerIdHabitacion(item)) === String(id));
+    const nombre = habitacion?.NombreHabitacion || `ID ${id}`;
+
+    if (!confirm(`¿Seguro que deseas eliminar la habitación ${nombre}?`)) {
+        return;
+    }
+
+    try {
+        mostrarMensajeHabitacionAdmin(`Eliminando ${nombre}...`);
+        const resultado = await eliminarHabitacion(id);
+
+        if (!resultado) {
+            throw new Error('No se pudo eliminar la habitación');
+        }
+
+        await cargarHabitacionesAdmin();
+        mostrarMensajeHabitacionAdmin('Habitación eliminada correctamente.', 'ok');
+
+        if (typeof cargarHabitaciones === 'function') {
+            await cargarHabitaciones();
+        }
+
+        if (typeof cargarHabitacionesSidebar === 'function') {
+            cargarHabitacionesSidebar();
+        }
+    } catch (error) {
+        console.error('Error al eliminar habitación:', error);
+        mostrarMensajeHabitacionAdmin(error.message || 'Error al eliminar la habitación', 'error');
+    }
+}
+
+function configurarCRUDHabitaciones() {
+    const formulario = document.getElementById('form-habitacion-admin');
+    const botonLimpiar = document.getElementById('btn-habitacion-admin-limpiar');
+    const botonRecargar = document.getElementById('btn-habitaciones-admin-recargar');
+    const buscador = document.getElementById('busqueda-habitaciones-admin');
+    const filtroEstado = document.getElementById('filtro-estado-habitaciones-admin');
+    const inputImagenTexto = document.getElementById('habitacion-admin-imagen');
+    const inputImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
+    const tabla = document.getElementById('habitaciones-admin-tbody');
+
+    if (formulario && !formulario.dataset.crudHabitacionesInicializado) {
+        formulario.addEventListener('submit', guardarHabitacionAdmin);
+        formulario.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (botonLimpiar && !botonLimpiar.dataset.crudHabitacionesInicializado) {
+        botonLimpiar.addEventListener('click', limpiarFormularioHabitacionAdmin);
+        botonLimpiar.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (botonRecargar && !botonRecargar.dataset.crudHabitacionesInicializado) {
+        botonRecargar.addEventListener('click', cargarHabitacionesAdmin);
+        botonRecargar.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (buscador && !buscador.dataset.crudHabitacionesInicializado) {
+        buscador.addEventListener('input', renderizarHabitacionesAdmin);
+        buscador.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (filtroEstado && !filtroEstado.dataset.crudHabitacionesInicializado) {
+        filtroEstado.addEventListener('change', renderizarHabitacionesAdmin);
+        filtroEstado.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (inputImagenTexto && !inputImagenTexto.dataset.crudHabitacionesInicializado) {
+        inputImagenTexto.addEventListener('input', () => {
+            if (habitacionAdminImagenArchivoBase64) return;
+            const valor = inputImagenTexto.value.trim();
+            mostrarPreviewHabitacionAdmin(valor ? obtenerUrlImagen(valor) : '');
+        });
+        inputImagenTexto.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (inputImagenArchivo && !inputImagenArchivo.dataset.crudHabitacionesInicializado) {
+        inputImagenArchivo.addEventListener('change', manejarArchivoHabitacionAdmin);
+        inputImagenArchivo.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (tabla && !tabla.dataset.crudHabitacionesInicializado) {
+        tabla.addEventListener('click', (event) => {
+            const boton = event.target.closest('button[data-accion-habitacion]');
+            if (!boton) return;
+
+            const accion = boton.dataset.accionHabitacion;
+            const id = boton.dataset.id;
+
+            if (accion === 'editar') {
+                const habitacion = habitacionesAdminCargadas.find((item) => String(obtenerIdHabitacion(item)) === String(id));
+                if (habitacion) {
+                    cargarHabitacionEnFormularioAdmin(habitacion);
+                }
+                return;
+            }
+
+            if (accion === 'eliminar') {
+                eliminarHabitacionAdmin(id);
+            }
+        });
+
+        tabla.addEventListener('change', (event) => {
+            const switchEstado = event.target.closest('input[data-accion-habitacion-estado="toggle"]');
+            if (!switchEstado) return;
+
+            const id = switchEstado.dataset.id;
+            const nuevoEstado = switchEstado.checked;
+            cambiarEstadoHabitacionAdmin(id, nuevoEstado, switchEstado);
+        });
+
+        tabla.dataset.crudHabitacionesInicializado = 'true';
+    }
+}
+
+// ============================================
 // FUNCIONES DE INTERACCIÓN
 // ============================================
 
@@ -677,6 +1285,7 @@ function verDetalles(id) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Página cargada, conectando con backend...');
     console.log('Backend URL:', 'http://localhost:3000/api');
+    configurarModoContraste();
     
     // Cargar datos según la página actual
     if (document.getElementById('habitaciones')) {
@@ -693,6 +1302,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (document.getElementById('servicios')) {
         cargarServicios();
+    }
+
+    if (document.getElementById('habitaciones-admin-tbody')) {
+        configurarCRUDHabitaciones();
+        cargarHabitacionesAdmin();
     }
     
     // Cargar miniaturas en el sidebar
@@ -868,3 +1482,7 @@ async function eliminarReservaUI(id) {
 // Hacer funciones disponibles globalmente para los eventos onclick
 window.eliminarClienteUI = eliminarClienteUI;
 window.eliminarReservaUI = eliminarReservaUI;
+window.cargarHabitacionesAdmin = cargarHabitacionesAdmin;
+window.guardarHabitacionAdmin = guardarHabitacionAdmin;
+window.eliminarHabitacionAdmin = eliminarHabitacionAdmin;
+window.limpiarFormularioHabitacionAdmin = limpiarFormularioHabitacionAdmin;
