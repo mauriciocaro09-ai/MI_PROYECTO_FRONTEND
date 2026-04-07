@@ -54,38 +54,6 @@
             </ul>
         </nav>
         
-        <!-- Sección de Miniaturas de Habitaciones -->
-        <div class="sidebar-gallery">
-            <h3>🏨 Habitaciones</h3>
-            <p class="gallery-subtitle">Vista rápida</p>
-            
-            <!-- Controles de visualización -->
-            <div class="gallery-controls">
-                <button id="gallery-grid-view" class="gallery-view-btn active" title="Vista Grid">
-                    <span>▦</span>
-                </button>
-                <button id="gallery-carousel-view" class="gallery-view-btn" title="Vista Carrusel">
-                    <span>◀▶</span>
-                </button>
-            </div>
-            
-            <!-- Contenedor Grid -->
-            <div id="habitaciones-gallery-grid" class="habitaciones-gallery-grid">
-                <p class="mensaje-vacio">Cargando...</p>
-            </div>
-            
-            <!-- Contenedor Carrusel -->
-            <div id="habitaciones-gallery-carousel" class="habitaciones-gallery-carousel hidden">
-                <button class="carousel-btn prev" onclick="moverCarrusel(-1)">❮</button>
-                <div class="carousel-track-container">
-                    <ul id="carousel-track" class="carousel-track">
-                        <!-- Las miniaturas se cargarán aquí -->
-                    </ul>
-                </div>
-                <button class="carousel-btn next" onclick="moverCarrusel(1)">❯</button>
-            </div>
-        </div>
-        
         <!-- Sección de Clientes -->
         <div class="sidebar-gallery clientes-section">
             <h3>👥 Clientes</h3>
@@ -100,11 +68,6 @@
                 <button type="submit" class="btn-registrar-cliente">Registrar</button>
             </form>
             <div id="mensaje-registro-cliente" class="mensaje-registro"></div>
-            
-            <!-- Lista de clientes -->
-            <div id="clientes-gallery-grid" class="clientes-gallery-grid">
-                <p class="mensaje-vacio">Cargando...</p>
-            </div>
         </div>
         
         <div class="sidebar-footer">
@@ -498,23 +461,6 @@
             // También cargar reservas existentes
             if (document.getElementById('reservas')) {
                 cargarReservas();
-            }
-            
-            // Cargar miniaturas en el sidebar
-            if (document.getElementById('habitaciones-gallery-grid')) {
-                cargarHabitacionesSidebar();
-                
-                // Configurar botones de cambio de vista
-                const gridViewBtn = document.getElementById('gallery-grid-view');
-                const carouselViewBtn = document.getElementById('gallery-carousel-view');
-                
-                if (gridViewBtn) {
-                    gridViewBtn.addEventListener('click', () => cambiarVista('grid'));
-                }
-                
-                if (carouselViewBtn) {
-                    carouselViewBtn.addEventListener('click', () => cambiarVista('carousel'));
-                }
             }
             
             // Evento cuando cambia la habitación seleccionada

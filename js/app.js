@@ -2,11 +2,9 @@
 // FUNCIONES PARA MOSTRAR DATOS
 // ============================================
 
-// Variable para controlar el carrusel
-let carruselIndex = 0;
-let habitacionesCargadas = [];
 let habitacionesAdminCargadas = [];
 let habitacionAdminImagenArchivoBase64 = '';
+let serviciosCargados = [];
 let reservasCargadas = [];
 let estadosReservaCargados = [];
 let lastShownApiError = null;
@@ -198,196 +196,6 @@ function precargarImagen(url) {
     });
 }
 
-// Función para obtener imagen con fallback
-async function obtenerImagenConFallback(valor) {
-    const url = obtenerUrlImagen(valor);
-    
-    // Si es la imagen por defecto, retornar directamente
-    if (url === 'assets/images/default.svg') {
-        return url;
-    }
-    
-    // Precargar imagen para verificar que existe
-    return await precargarImagen(url);
-}
-
-function mostrarHabitacionesSidebar(habitaciones) {
-    const gridContenedor = document.getElementById('habitaciones-gallery-grid');
-    const carouselTrack = document.getElementById('carousel-track');
-    
-    if (!gridContenedor && !carouselTrack) return;
-    
-    console.log('Cargando miniaturas en sidebar:', habitaciones);
-    
-    if (!habitaciones || habitaciones.length === 0) {
-        if (gridContenedor) {
-            gridContenedor.innerHTML = '<p class="mensaje-vacio">No hay habitaciones disponibles</p>';
-        }
-        return;
-    }
-    
-    // Guardar habitaciones para el carrusel
-    habitacionesCargadas = habitaciones;
-    
-    // Renderizar Grid
-    if (gridContenedor) {
-        gridContenedor.innerHTML = '';
-        
-        habitaciones.forEach(habitacion => {
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            item.onclick = () => verDetalles(habitacion.IDHabitacion || habitacion.id);
-            
-            // Usar la función para obtener la URL correcta
-            const imagen = obtenerUrlImagen(habitacion.ImagenHabitacion);
-            
-            item.innerHTML = `
-                <img src="${imagen}" alt="${habitacion.NombreHabitacion}" 
-                     onerror="this.src='assets/images/default.svg'">
-                <div class="gallery-item-info">
-                    <h4>${habitacion.NombreHabitacion}</h4>
-                    <p class="precio">$${habitacion.Costo}/noche</p>
-                </div>
-            `;
-            gridContenedor.appendChild(item);
-        });
-    }
-    
-        // Renderizar Carrusel
-    if (carouselTrack) {
-        carouselTrack.innerHTML = '';
-        
-        habitaciones.forEach(habitacion => {
-            const slide = document.createElement('li');
-            slide.className = 'carousel-slide';
-            
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            item.onclick = () => verDetalles(habitacion.IDHabitacion || habitacion.id);
-            
-            // Usar la función para obtener la URL correcta
-            const imagen = obtenerUrlImagen(habitacion.ImagenHabitacion);
-            
-            item.innerHTML = `
-                <img src="${imagen}" alt="${habitacion.NombreHabitacion}" 
-                     onerror="this.src='assets/images/default.svg'">
-                <div class="gallery-item-info">
-                    <h4>${habitacion.NombreHabitacion}</h4>
-                    <p class="precio">$${habitacion.Costo}/noche</p>
-                </div>
-            `;
-            
-            slide.appendChild(item);
-            carouselTrack.appendChild(slide);
-        });
-        
-        // Reiniciar índice del carrusel
-        carruselIndex = 0;
-    }
-}
-
-// Función para cambiar entre vista grid y carrusel
-function cambiarVista(vista) {
-    const gridViewBtn = document.getElementById('gallery-grid-view');
-    const carouselViewBtn = document.getElementById('gallery-carousel-view');
-    const gridContenedor = document.getElementById('habitaciones-gallery-grid');
-    const carouselContenedor = document.getElementById('habitaciones-gallery-carousel');
-    
-    if (vista === 'grid') {
-        gridViewBtn.classList.add('active');
-        carouselViewBtn.classList.remove('active');
-        gridContenedor.style.display = 'grid';
-        carouselContenedor.style.display = 'none';
-    } else {
-        gridViewBtn.classList.remove('active');
-        carouselViewBtn.classList.add('active');
-        gridContenedor.style.display = 'none';
-        carouselContenedor.style.display = 'flex';
-    }
-}
-
-// Función para mover el carrusel
-function moverCarrusel(direccion) {
-    const track = document.getElementById('carousel-track');
-    if (!track || habitacionesCargadas.length === 0) return;
-    
-    carruselIndex += direccion;
-    
-    // Ciclar el índice
-    if (carruselIndex < 0) {
-        carruselIndex = habitacionesCargadas.length - 1;
-    } else if (carruselIndex >= habitacionesCargadas.length) {
-        carruselIndex = 0;
-    }
-    
-    // Mover el track
-    track.style.transform = `translateX(-${carruselIndex * 100}%)`;
-}
-
-// Función para cargar habitaciones en el sidebar
-async function cargarHabitacionesSidebar() {
-    console.log('Cargando miniaturas para sidebar...');
-    try {
-        const habitaciones = await obtenerHabitaciones();
-        console.log('Miniaturas obtenidas:', habitaciones);
-        mostrarHabitacionesSidebar(habitaciones);
-    } catch (error) {
-        console.error('Error al cargar miniaturas:', error);
-        const gridContenedor = document.getElementById('habitaciones-gallery-grid');
-        if (gridContenedor) {
-            gridContenedor.innerHTML = '<p class="mensaje-vacio">Error al cargar</p>';
-        }
-    }
-}
-
-// Función para mostrar clientes en el sidebar
-function mostrarClientesSidebar(clientes) {
-    const gridContenedor = document.getElementById('clientes-gallery-grid');
-    if (!gridContenedor) return;
-    
-    console.log('Cargando clientes en sidebar:', clientes);
-    
-    if (!clientes || clientes.length === 0) {
-        gridContenedor.innerHTML = '<p class="mensaje-vacio">No hay clientes registrados</p>';
-        return;
-    }
-    
-    gridContenedor.innerHTML = '';
-    
-    clientes.forEach(cliente => {
-        const item = document.createElement('div');
-        item.className = 'cliente-item';
-        
-        // Determinar el nombre a mostrar
-        const nombre = cliente.Nombre || cliente.NombreCliente || cliente.nombre || 'Sin nombre';
-        const email = cliente.Email || cliente.EmailCliente || cliente.email || 'Sin email';
-        
-        item.innerHTML = `
-            <div class="cliente-item-info">
-                <h4>${nombre}</h4>
-                <p>${email}</p>
-            </div>
-        `;
-        gridContenedor.appendChild(item);
-    });
-}
-
-// Función para cargar clientes en el sidebar
-async function cargarClientesSidebar() {
-    console.log('Cargando clientes para sidebar...');
-    try {
-        const clientes = await obtenerClientes();
-        console.log('Clientes obtenidos:', clientes);
-        mostrarClientesSidebar(clientes);
-    } catch (error) {
-        console.error('Error al cargar clientes:', error);
-        const gridContenedor = document.getElementById('clientes-gallery-grid');
-        if (gridContenedor) {
-            gridContenedor.innerHTML = '<p class="mensaje-vacio">Error al cargar</p>';
-        }
-    }
-}
-
 // Función para registrar un nuevo cliente
 async function registrarCliente(event) {
     event.preventDefault();
@@ -422,9 +230,6 @@ async function registrarCliente(event) {
             
             // Limpiar formulario
             document.getElementById('form-registro-cliente').reset();
-            
-            // Recargar lista de clientes
-            cargarClientesSidebar();
             
             // Ocultar mensaje después de 3 segundos
             setTimeout(() => {
@@ -938,7 +743,6 @@ const renderizarHabitacionesAdmin = () => {
                             >
                             <span class="switch-slider"></span>
                         </label>
-                        <span class="estado ${estado.clase}">${estado.texto}</span>
                     </div>
                 </td>
                 <td class="crud-habitaciones-descripcion">${escaparHtml(habitacion.Descripcion || 'Sin descripción')}</td>
@@ -988,10 +792,6 @@ async function cambiarEstadoHabitacionAdmin(id, nuevoEstado, inputToggle = null)
 
         if (typeof cargarHabitaciones === 'function') {
             await cargarHabitaciones();
-        }
-
-        if (typeof cargarHabitacionesSidebar === 'function') {
-            cargarHabitacionesSidebar();
         }
     } catch (error) {
         console.error('Error al cambiar estado de habitación:', error);
@@ -1141,10 +941,6 @@ async function guardarHabitacionAdmin(event) {
         if (typeof cargarHabitaciones === 'function') {
             await cargarHabitaciones();
         }
-
-        if (typeof cargarHabitacionesSidebar === 'function') {
-            cargarHabitacionesSidebar();
-        }
     } catch (error) {
         console.error('Error al guardar habitación:', error);
         mostrarMensajeHabitacionAdmin(error.message || 'Error al guardar la habitación', 'error');
@@ -1174,10 +970,6 @@ async function eliminarHabitacionAdmin(id) {
 
         if (typeof cargarHabitaciones === 'function') {
             await cargarHabitaciones();
-        }
-
-        if (typeof cargarHabitacionesSidebar === 'function') {
-            cargarHabitacionesSidebar();
         }
     } catch (error) {
         console.error('Error al eliminar habitación:', error);
@@ -1280,6 +1072,458 @@ function verDetalles(id) {
 }
 
 // ============================================
+// FUNCIONES DE NAVEGACIÓN ENTRE SECCIONES
+// ============================================
+
+function cargarSeccion(seccion, event) {
+    if (event) {
+        event.preventDefault();
+    }
+
+    // Ocultar todas las secciones
+    document.querySelectorAll('[id^="seccion-"]').forEach((section) => {
+        section.classList.add('hidden');
+    });
+
+    // Mostrar la sección seleccionada
+    const idSeccion = `seccion-${seccion}`;
+    const elementoSeccion = document.getElementById(idSeccion);
+    
+    if (elementoSeccion) {
+        elementoSeccion.classList.remove('hidden');
+        
+        // Cargar datos según la sección
+        if (seccion === 'habitaciones') {
+            cargarHabitaciones();
+        } else if (seccion === 'administrar-habitaciones') {
+            cargarHabitacionesAdmin();
+        } else if (seccion === 'clientes') {
+            cargarClientes();
+        } else if (seccion === 'reservas') {
+            cargarReservas();
+        } else if (seccion === 'servicios') {
+            cargarServicios();
+        } else if (seccion === 'administrar-servicios') {
+            cargarServiciosAdmin();
+        }
+        
+        // Cerrar sidebar en móviles
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar && window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+        }
+    }
+}
+
+// ============================================
+// FUNCIONES CRUD SERVICIOS
+// ============================================
+
+const normalizarEstadoServicio = (estado) => {
+    const activo = Number(estado) === 1;
+    return {
+        activo,
+        clase: activo ? 'activo' : 'inactivo',
+        texto: activo ? 'Activo' : 'Inactivo'
+    };
+};
+
+const obtenerIdServicio = (servicio) => servicio.IDServicio;
+
+const formatearCostoServicio = (costo) => {
+    const numero = Number(costo);
+    return Number.isNaN(numero) ? '$0' : `$${numero.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+};
+
+const mostrarMensajeServicioAdmin = (mensaje, tipo = 'info') => {
+    const elemento = document.getElementById('mensaje-servicio-admin');
+    if (!elemento) return;
+
+    elemento.textContent = mensaje;
+    elemento.className = 'crud-servicios-mensaje';
+    if (tipo !== 'info') {
+        elemento.classList.add(tipo);
+    }
+
+    if (tipo === 'error' || tipo === 'ok') {
+        setTimeout(() => {
+            elemento.textContent = '';
+            elemento.className = 'crud-servicios-mensaje';
+        }, 3500);
+    }
+};
+
+async function cargarServiciosAdmin() {
+    try {
+        serviciosCargados = await obtenerServicios();
+        renderizarServiciosAdmin();
+    } catch (error) {
+        console.error('Error cargando servicios:', error);
+        serviciosCargados = [];
+        mostrarMensajeServicioAdmin('Error al cargar servicios del servidor', 'error');
+    }
+}
+
+const obtenerFiltrosServiciosAdmin = () => {
+    const busqueda = document.getElementById('busqueda-servicios-admin');
+    const filtroEstado = document.getElementById('filtro-estado-servicios-admin');
+
+    return {
+        termino: normalizarTexto(busqueda?.value),
+        estado: filtroEstado?.value || 'all'
+    };
+};
+
+const serviciosAdminCoinciden = (servicio, filtros) => {
+    const textoBusqueda = [
+        servicio.NombreServicio,
+        servicio.Descripcion,
+        servicio.Estado,
+        servicio.Costo,
+        obtenerIdServicio(servicio)
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+    const coincideTexto = !filtros.termino || textoBusqueda.includes(filtros.termino);
+    const estadoNormalizado = normalizarEstadoServicio(servicio.Estado);
+
+    if (filtros.estado === 'active' && !estadoNormalizado.activo) return false;
+    if (filtros.estado === 'inactive' && estadoNormalizado.activo) return false;
+
+    return coincideTexto;
+};
+
+const actualizarResumenServiciosAdmin = (servicios) => {
+    const total = document.getElementById('servicios-admin-total');
+    const activos = document.getElementById('servicios-admin-activos');
+    const inactivos = document.getElementById('servicios-admin-inactivos');
+
+    const lista = Array.isArray(servicios) ? servicios : [];
+    const totalServicios = lista.length;
+    const serviciosActivos = lista.filter((servicio) => normalizarEstadoServicio(servicio.Estado).activo).length;
+    const serviciosInactivos = totalServicios - serviciosActivos;
+
+    if (total) total.textContent = totalServicios;
+    if (activos) activos.textContent = serviciosActivos;
+    if (inactivos) inactivos.textContent = serviciosInactivos;
+};
+
+const renderizarServiciosAdmin = () => {
+    const contenedor = document.getElementById('servicios-admin-tbody');
+    if (!contenedor) return;
+
+    const filtros = obtenerFiltrosServiciosAdmin();
+    const serviciosFiltrados = serviciosCargados.filter((servicio) => serviciosAdminCoinciden(servicio, filtros));
+
+    actualizarResumenServiciosAdmin(serviciosCargados);
+
+    if (serviciosFiltrados.length === 0) {
+        contenedor.innerHTML = `
+            <tr>
+                <td colspan="7" class="mensaje-vacio">No hay servicios que coincidan con el filtro actual.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    contenedor.innerHTML = serviciosFiltrados.map((servicio) => {
+        const idServicio = obtenerIdServicio(servicio);
+        const estado = normalizarEstadoServicio(servicio.Estado);
+        const switchId = `switch-servicio-${idServicio}`;
+
+        return `
+            <tr>
+                <td>
+                    <div class="crud-servicios-nombre">${escaparHtml(servicio.NombreServicio || 'Sin nombre')}</div>
+                    <div class="crud-servicios-descripcion">ID: ${escaparHtml(idServicio)}</div>
+                </td>
+                <td><strong>${servicio.Duracion || '—'}</strong></td>
+                <td>${servicio.CantidadMaximaPersonas || '—'}</td>
+                <td><strong>${formatearCostoServicio(servicio.Costo)}</strong></td>
+                <td>
+                    <div class="crud-estado-control">
+                        <label class="switch-estado-servicio" for="${escaparHtml(switchId)}">
+                            <input
+                                id="${escaparHtml(switchId)}"
+                                type="checkbox"
+                                data-accion-servicio-estado="toggle"
+                                data-id="${escaparHtml(idServicio)}"
+                                ${estado.activo ? 'checked' : ''}
+                                aria-label="Cambiar estado de ${escaparHtml(servicio.NombreServicio || 'servicio')}"
+                            >
+                            <span class="switch-slider-servicio"></span>
+                        </label>
+                    </div>
+                </td>
+                <td class="crud-servicios-descripcion">${escaparHtml(servicio.Descripcion || 'Sin descripción')}</td>
+                <td>
+                    <div class="crud-servicios-acciones">
+                        <button type="button" class="btn-mini btn-mini-editar" data-accion-servicio="editar" data-id="${escaparHtml(idServicio)}">Editar</button>
+                        <button type="button" class="btn-mini btn-mini-eliminar" data-accion-servicio="eliminar" data-id="${escaparHtml(idServicio)}">Eliminar</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+async function cambiarEstadoServicioAdmin(id, nuevoEstado, inputToggle = null) {
+    const servicio = serviciosCargados.find((item) => String(obtenerIdServicio(item)) === String(id));
+    if (!servicio) {
+        if (inputToggle) {
+            inputToggle.checked = !nuevoEstado;
+            inputToggle.disabled = false;
+        }
+        mostrarMensajeServicioAdmin('No se encontró el servicio para cambiar estado.', 'error');
+        return;
+    }
+
+    try {
+        if (inputToggle) {
+            inputToggle.disabled = true;
+        }
+
+        const payload = {
+            NombreServicio: servicio.NombreServicio,
+            Descripcion: servicio.Descripcion,
+            Duracion: servicio.Duracion,
+            CantidadMaximaPersonas: servicio.CantidadMaximaPersonas,
+            Costo: Number(servicio.Costo),
+            Estado: nuevoEstado ? 1 : 0
+        };
+
+        const resultado = await actualizarServicio(id, payload);
+        if (!resultado) {
+            throw new Error('No se pudo actualizar el estado del servicio');
+        }
+
+        servicio.Estado = nuevoEstado ? 1 : 0;
+        renderizarServiciosAdmin();
+        mostrarMensajeServicioAdmin(`Estado actualizado: ${servicio.NombreServicio} ${nuevoEstado ? 'activado' : 'desactivado'}.`, 'ok');
+    } catch (error) {
+        console.error('Error al cambiar estado de servicio:', error);
+        if (inputToggle) {
+            inputToggle.checked = !nuevoEstado;
+        }
+        mostrarMensajeServicioAdmin(error.message || 'No se pudo actualizar el estado', 'error');
+    } finally {
+        if (inputToggle) {
+            inputToggle.disabled = false;
+        }
+    }
+}
+
+const limpiarFormularioServicioAdmin = (mostrarMensaje = true) => {
+    const formulario = document.getElementById('form-servicio-admin');
+    const campoId = document.getElementById('servicio-admin-id');
+    const campoNombre = document.getElementById('servicio-admin-nombre');
+    const campoDescripcion = document.getElementById('servicio-admin-descripcion');
+    const campoDuracion = document.getElementById('servicio-admin-duracion');
+    const campoCantidadMaxima = document.getElementById('servicio-admin-cantidad-maxima');
+    const campoCosto = document.getElementById('servicio-admin-costo');
+    const campoEstado = document.getElementById('servicio-admin-estado');
+    const titulo = document.getElementById('servicio-admin-form-title');
+    const botonGuardar = document.getElementById('btn-servicio-admin-guardar');
+
+    if (formulario) formulario.reset();
+    if (campoId) campoId.value = '';
+    if (campoNombre) campoNombre.value = '';
+    if (campoDescripcion) campoDescripcion.value = '';
+    if (campoDuracion) campoDuracion.value = '';
+    if (campoCantidadMaxima) campoCantidadMaxima.value = '';
+    if (campoCosto) campoCosto.value = '';
+    if (campoEstado) campoEstado.value = '1';
+    if (titulo) titulo.textContent = 'Crear servicio';
+    if (botonGuardar) botonGuardar.textContent = 'Guardar servicio';
+
+    if (mostrarMensaje) {
+        mostrarMensajeServicioAdmin('Formulario listo para crear un nuevo servicio.');
+    }
+};
+
+const cargarServicioEnFormularioAdmin = (servicio) => {
+    const campoId = document.getElementById('servicio-admin-id');
+    const campoNombre = document.getElementById('servicio-admin-nombre');
+    const campoDescripcion = document.getElementById('servicio-admin-descripcion');
+    const campoDuracion = document.getElementById('servicio-admin-duracion');
+    const campoCantidadMaxima = document.getElementById('servicio-admin-cantidad-maxima');
+    const campoCosto = document.getElementById('servicio-admin-costo');
+    const campoEstado = document.getElementById('servicio-admin-estado');
+    const titulo = document.getElementById('servicio-admin-form-title');
+    const botonGuardar = document.getElementById('btn-servicio-admin-guardar');
+
+    if (!servicio) return;
+
+    const idServicio = obtenerIdServicio(servicio);
+
+    if (campoId) campoId.value = idServicio;
+    if (campoNombre) campoNombre.value = servicio.NombreServicio || '';
+    if (campoDescripcion) campoDescripcion.value = servicio.Descripcion || '';
+    if (campoDuracion) campoDuracion.value = servicio.Duracion || '';
+    if (campoCantidadMaxima) campoCantidadMaxima.value = servicio.CantidadMaximaPersonas || '';
+    if (campoCosto) campoCosto.value = servicio.Costo || '';
+    if (campoEstado) campoEstado.value = servicio.Estado;
+    if (titulo) titulo.textContent = `Editar: ${servicio.NombreServicio}`;
+    if (botonGuardar) botonGuardar.textContent = 'Actualizar servicio';
+
+    mostrarMensajeServicioAdmin('Servicio cargado en el formulario. Modifica los campos y guarda los cambios.');
+};
+
+async function guardarServicioAdmin(evento) {
+    evento.preventDefault();
+
+    const campoId = document.getElementById('servicio-admin-id');
+    const campoNombre = document.getElementById('servicio-admin-nombre');
+    const campoDescripcion = document.getElementById('servicio-admin-descripcion');
+    const campoDuracion = document.getElementById('servicio-admin-duracion');
+    const campoCantidadMaxima = document.getElementById('servicio-admin-cantidad-maxima');
+    const campoCosto = document.getElementById('servicio-admin-costo');
+    const campoEstado = document.getElementById('servicio-admin-estado');
+
+    const id = campoId?.value;
+    const nombre = campoNombre?.value.trim();
+    const descripcion = campoDescripcion?.value.trim();
+    const duracion = campoDuracion?.value.trim();
+    const cantidadMaxima = campoCantidadMaxima?.value.trim();
+    const costo = campoCosto?.value.trim();
+    const estado = campoEstado?.value;
+
+    if (!nombre || !descripcion || !duracion || !cantidadMaxima || !costo || estado === undefined) {
+        mostrarMensajeServicioAdmin('Por favor completa todos los campos del formulario.', 'error');
+        return;
+    }
+
+    const payload = {
+        NombreServicio: nombre,
+        Descripcion: descripcion,
+        Duracion: Number(duracion),
+        CantidadMaximaPersonas: Number(cantidadMaxima),
+        Costo: Number(costo),
+        Estado: Number(estado)
+    };
+
+    try {
+        if (id) {
+            // Actualizar
+            const resultado = await actualizarServicio(id, payload);
+            if (!resultado) {
+                throw new Error('No se pudo actualizar el servicio');
+            }
+            mostrarMensajeServicioAdmin(`Servicio "${nombre}" actualizado correctamente.`, 'ok');
+        } else {
+            // Crear
+            const resultado = await crearServicio(payload);
+            if (!resultado) {
+                throw new Error('No se pudo crear el servicio');
+            }
+            mostrarMensajeServicioAdmin(`Servicio "${nombre}" creado correctamente.`, 'ok');
+        }
+
+        limpiarFormularioServicioAdmin(false);
+        await cargarServiciosAdmin();
+    } catch (error) {
+        console.error('Error al guardar servicio:', error);
+        mostrarMensajeServicioAdmin(error.message || 'No se pudo guardar el servicio', 'error');
+    }
+}
+
+async function eliminarServicioAdmin(id) {
+    const servicio = serviciosCargados.find((item) => String(obtenerIdServicio(item)) === String(id));
+    if (!servicio) {
+        mostrarMensajeServicioAdmin('Servicio no encontrado.', 'error');
+        return;
+    }
+
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar el servicio "${servicio.NombreServicio}"?`);
+    if (!confirmacion) return;
+
+    try {
+        const resultado = await eliminarServicio(id);
+        if (!resultado) {
+            throw new Error('No se pudo eliminar el servicio');
+        }
+
+        mostrarMensajeServicioAdmin(`Servicio "${servicio.NombreServicio}" eliminado correctamente.`, 'ok');
+        limpiarFormularioServicioAdmin(false);
+        await cargarServiciosAdmin();
+    } catch (error) {
+        console.error('Error al eliminar servicio:', error);
+        mostrarMensajeServicioAdmin(error.message || 'No se pudo eliminar el servicio', 'error');
+    }
+}
+
+const inicializarFormularioServiciosAdmin = () => {
+    const formulario = document.getElementById('form-servicio-admin');
+    const botonLimpiar = document.getElementById('btn-servicio-admin-limpiar');
+    const botonRecargar = document.getElementById('btn-servicios-admin-recargar');
+    const buscador = document.getElementById('busqueda-servicios-admin');
+    const filtroEstado = document.getElementById('filtro-estado-servicios-admin');
+    const tabla = document.getElementById('servicios-admin-tbody')?.closest('table');
+
+    if (formulario && !formulario.dataset.serviciosAdminInicializado) {
+        formulario.addEventListener('submit', guardarServicioAdmin);
+        formulario.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (botonLimpiar && !botonLimpiar.dataset.serviciosAdminInicializado) {
+        botonLimpiar.addEventListener('click', () => limpiarFormularioServicioAdmin());
+        botonLimpiar.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (botonRecargar && !botonRecargar.dataset.serviciosAdminInicializado) {
+        botonRecargar.addEventListener('click', cargarServiciosAdmin);
+        botonRecargar.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (buscador && !buscador.dataset.serviciosAdminInicializado) {
+        buscador.addEventListener('input', renderizarServiciosAdmin);
+        buscador.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (filtroEstado && !filtroEstado.dataset.serviciosAdminInicializado) {
+        filtroEstado.addEventListener('change', renderizarServiciosAdmin);
+        filtroEstado.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (tabla && !tabla.dataset.serviciosAdminInicializado) {
+        tabla.addEventListener('click', (event) => {
+            const boton = event.target.closest('button[data-accion-servicio]');
+            if (!boton) return;
+
+            const accion = boton.dataset.accionServicio;
+            const id = boton.dataset.id;
+
+            if (accion === 'editar') {
+                const servicio = serviciosCargados.find((item) => String(obtenerIdServicio(item)) === String(id));
+                if (servicio) {
+                    cargarServicioEnFormularioAdmin(servicio);
+                }
+                return;
+            }
+
+            if (accion === 'eliminar') {
+                eliminarServicioAdmin(id);
+            }
+        });
+
+        tabla.addEventListener('change', (event) => {
+            const switchEstado = event.target.closest('input[data-accion-servicio-estado="toggle"]');
+            if (!switchEstado) return;
+
+            const id = switchEstado.dataset.id;
+            const nuevoEstado = switchEstado.checked;
+            cambiarEstadoServicioAdmin(id, nuevoEstado, switchEstado);
+        });
+
+        tabla.dataset.serviciosAdminInicializado = 'true';
+    }
+}
+
+// ============================================
 // INICIALIZAR
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -1300,6 +1544,15 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarReservas();
     }
     
+    // Inicializar CRUD de habitaciones y servicios
+    if (document.getElementById('form-habitacion-admin')) {
+        inicializarFormularioHabitacionesAdmin();
+    }
+    
+    if (document.getElementById('form-servicio-admin')) {
+        inicializarFormularioServiciosAdmin();
+    }
+    
     if (document.getElementById('servicios')) {
         cargarServicios();
     }
@@ -1307,28 +1560,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('habitaciones-admin-tbody')) {
         configurarCRUDHabitaciones();
         cargarHabitacionesAdmin();
-    }
-    
-    // Cargar miniaturas en el sidebar
-    if (document.getElementById('habitaciones-gallery-grid')) {
-        cargarHabitacionesSidebar();
-        
-        // Configurar botones de cambio de vista
-        const gridViewBtn = document.getElementById('gallery-grid-view');
-        const carouselViewBtn = document.getElementById('gallery-carousel-view');
-        
-        if (gridViewBtn) {
-            gridViewBtn.addEventListener('click', () => cambiarVista('grid'));
-        }
-        
-        if (carouselViewBtn) {
-            carouselViewBtn.addEventListener('click', () => cambiarVista('carousel'));
-        }
-    }
-    
-    // Cargar clientes en el sidebar
-    if (document.getElementById('clientes-gallery-grid')) {
-        cargarClientesSidebar();
     }
     
     // Configurar formulario de registro de clientes
@@ -1410,7 +1641,6 @@ async function guardarClienteEditado(e) {
                 mensajeDiv.textContent = '';
                 mensajeDiv.className = 'mensaje-editar';
                 cargarClientes();
-                cargarClientesSidebar();
             }, 1500);
         } else {
             throw new Error('No se pudo actualizar el cliente');
@@ -1435,7 +1665,6 @@ async function eliminarClienteUI(id) {
         if (res) {
             alert('Cliente eliminado exitosamente');
             cargarClientes();
-            cargarClientesSidebar();
         } else {
             throw new Error('No se pudo eliminar el cliente');
         }

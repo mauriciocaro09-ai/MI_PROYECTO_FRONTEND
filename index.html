@@ -41,6 +41,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="#" onclick="cargarSeccion('administrar-servicios', event)">
+                        <span class="icon">⚙️</span>
+                        <span class="text">Administrar servicios</span>
+                    </a>
+                </li>
+                <li>
                     <a href="#" onclick="cargarSeccion('clientes', event)">
                         <span class="icon">👥</span>
                         <span class="text">Clientes</span>
@@ -61,38 +67,6 @@
             </ul>
         </nav>
         
-        <!-- Sección de Miniaturas de Habitaciones -->
-        <div class="sidebar-gallery">
-            <h3>🏨 Habitaciones</h3>
-            <p class="gallery-subtitle">Vista rápida</p>
-            
-            <!-- Controles de visualización -->
-            <div class="gallery-controls">
-                <button id="gallery-grid-view" class="gallery-view-btn active" title="Vista Grid">
-                    <span>▦</span>
-                </button>
-                <button id="gallery-carousel-view" class="gallery-view-btn" title="Vista Carrusel">
-                    <span>◀▶</span>
-                </button>
-            </div>
-            
-            <!-- Contenedor Grid -->
-            <div id="habitaciones-gallery-grid" class="habitaciones-gallery-grid">
-                <p class="mensaje-vacio">Cargando...</p>
-            </div>
-            
-            <!-- Contenedor Carrusel -->
-            <div id="habitaciones-gallery-carousel" class="habitaciones-gallery-carousel hidden">
-                <button class="carousel-btn prev" onclick="moverCarrusel(-1)">❮</button>
-                <div class="carousel-track-container">
-                    <ul id="carousel-track" class="carousel-track">
-                        <!-- Las miniaturas se cargarán aquí -->
-                    </ul>
-                </div>
-                <button class="carousel-btn next" onclick="moverCarrusel(1)">❯</button>
-            </div>
-        </div>
-        
         <!-- Sección de Clientes -->
         <div class="sidebar-gallery">
             <h3>👥 Clientes</h3>
@@ -107,11 +81,6 @@
                 <button type="submit" class="btn-registrar-cliente">Registrar</button>
             </form>
             <div id="mensaje-registro-cliente" class="mensaje-registro"></div>
-            
-            <!-- Lista de clientes -->
-            <div id="clientes-gallery-grid" class="clientes-gallery-grid">
-                <p class="mensaje-vacio">Cargando...</p>
-            </div>
         </div>
         
         <div class="sidebar-footer">
@@ -279,6 +248,125 @@
                 </div>
             </section>
 
+            <!-- Sección de Administración de Servicios -->
+            <section id="seccion-administrar-servicios" class="crud-servicios-section hidden">
+                <div class="crud-servicios-header">
+                    <div>
+                        <h3>Administración de servicios</h3>
+                        <p class="crud-servicios-subtitle">Crea, actualiza y elimina registros de la tabla <strong>servicio</strong> sin salir del frontend.</p>
+                    </div>
+                    <div class="crud-servicios-actions">
+                        <button type="button" class="btn-accion-crud btn-accion-principal" id="btn-servicios-admin-recargar">Recargar listado</button>
+                        <button type="button" class="btn-accion-crud" onclick="document.getElementById('form-servicio-admin').scrollIntoView({ behavior: 'smooth', block: 'start' })">Nuevo registro</button>
+                    </div>
+                </div>
+
+                <div class="crud-servicios-summary">
+                    <article>
+                        <span>Total</span>
+                        <strong id="servicios-admin-total">0</strong>
+                    </article>
+                    <article>
+                        <span>Activos</span>
+                        <strong id="servicios-admin-activos">0</strong>
+                    </article>
+                    <article>
+                        <span>Inactivos</span>
+                        <strong id="servicios-admin-inactivos">0</strong>
+                    </article>
+                </div>
+
+                <div class="crud-servicios-layout">
+                    <section class="crud-servicios-panel">
+                        <h4 id="servicio-admin-form-title">Crear servicio</h4>
+                        <p class="crud-servicios-note">Los campos están alineados con la estructura real de la base de datos.</p>
+
+                        <form id="form-servicio-admin" class="crud-servicios-form">
+                            <input type="hidden" id="servicio-admin-id">
+
+                            <label>
+                                Nombre del servicio
+                                <input type="text" id="servicio-admin-nombre" required maxlength="50" placeholder="Ej. Masaje relajante">
+                            </label>
+
+                            <label>
+                                Descripción
+                                <textarea id="servicio-admin-descripcion" required maxlength="100" placeholder="Describe el servicio en pocas palabras"></textarea>
+                            </label>
+
+                            <label>
+                                Duración (minutos)
+                                <input type="number" id="servicio-admin-duracion" required min="0" placeholder="Ej. 60">
+                            </label>
+
+                            <label>
+                                Cantidad máxima de personas
+                                <input type="number" id="servicio-admin-cantidad-maxima" required min="1" placeholder="Ej. 4">
+                            </label>
+
+                            <label>
+                                Costo
+                                <input type="number" id="servicio-admin-costo" required min="0" step="0.01" placeholder="Ej. 150000">
+                            </label>
+
+                            <label>
+                                Estado
+                                <select id="servicio-admin-estado" required>
+                                    <option value="1">Activo</option>
+                                    <option value="0">Inactivo</option>
+                                </select>
+                            </label>
+
+                            <div class="crud-servicios-form-actions">
+                                <button type="submit" class="btn-accion-crud btn-accion-principal" id="btn-servicio-admin-guardar">Guardar servicio</button>
+                                <button type="button" class="btn-accion-crud btn-accion-secundaria" id="btn-servicio-admin-limpiar">Limpiar formulario</button>
+                            </div>
+                        </form>
+
+                        <div id="mensaje-servicio-admin" class="crud-servicios-mensaje" aria-live="polite"></div>
+                    </section>
+
+                    <section class="crud-servicios-panel crud-servicios-panel-lista">
+                        <div class="crud-servicios-lista-top">
+                            <div>
+                                <h4>Listado</h4>
+                                <p class="crud-servicios-note">Busca por nombre, descripción o estado y usa las acciones por fila.</p>
+                            </div>
+
+                            <div class="crud-servicios-filtros">
+                                <input type="search" id="busqueda-servicios-admin" placeholder="Buscar servicio">
+                                <select id="filtro-estado-servicios-admin" aria-label="Filtrar servicios por estado">
+                                    <option value="all">Todos</option>
+                                    <option value="active">Activos</option>
+                                    <option value="inactive">Inactivos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="crud-servicios-tabla-wrap">
+                            <table class="crud-servicios-tabla">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Duración (min)</th>
+                                        <th>Personas</th>
+                                        <th>Costo</th>
+                                        <th>Estado</th>
+                                        <th>Descripción</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="servicios-admin-tbody">
+                                    <tr>
+                                        <td colspan="7" class="mensaje-vacio">Cargando servicios...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
             <!-- Sección de Clientes (oculta por defecto) -->
             <section id="seccion-clientes" class="clientes-section hidden">
                 <h3>Clientes Registrados</h3>
@@ -395,7 +483,8 @@
             
             const secciones = [
                 'seccion-habitaciones',
-                    'seccion-administrar-habitaciones',
+                'seccion-administrar-habitaciones',
+                'seccion-administrar-servicios',
                 'seccion-clientes',
                 'seccion-reservas',
                 'seccion-servicios'
@@ -422,6 +511,10 @@
                 } else if (seccion === 'administrar-habitaciones') {
                     if (typeof cargarHabitacionesAdmin === 'function') {
                         cargarHabitacionesAdmin();
+                    }
+                } else if (seccion === 'administrar-servicios') {
+                    if (typeof cargarServiciosAdmin === 'function') {
+                        cargarServiciosAdmin();
                     }
                 } else if (seccion === 'clientes') {
                     cargarClientes();

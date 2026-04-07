@@ -837,6 +837,314 @@ form textarea::placeholder {
 }
 
 /* ============================================
+   CRUD - SERVICIOS (Similar a Habitaciones)
+   ============================================ */
+
+.crud-servicios-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.crud-servicios-header {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, #ffffff 0%, #fff5f0 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.crud-servicios-header h3 {
+    font-size: var(--font-size-xxl);
+    color: #c2410c;
+    margin-bottom: var(--spacing-xs);
+}
+
+.crud-servicios-subtitle,
+.crud-servicios-note {
+    color: var(--color-text-light);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.crud-servicios-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.crud-servicios-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.crud-servicios-summary article {
+    background: var(--color-white);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.crud-servicios-summary span {
+    display: block;
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.crud-servicios-summary strong {
+    font-size: 2rem;
+    color: #c2410c;
+}
+
+.crud-servicios-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: var(--spacing-lg);
+}
+
+.crud-servicios-panel {
+    background: var(--color-white);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.crud-servicios-panel h4 {
+    font-size: var(--font-size-xl);
+    color: #c2410c;
+    margin-bottom: var(--spacing-sm);
+}
+
+.crud-servicios-form {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.crud-servicios-form label {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.crud-servicios-form input,
+.crud-servicios-form textarea,
+.crud-servicios-form select,
+.crud-servicios-filtros input,
+.crud-servicios-filtros select {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: var(--color-white);
+    color: var(--color-text);
+    font: inherit;
+}
+
+.crud-servicios-form textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+.crud-servicios-form input:focus,
+.crud-servicios-form textarea:focus,
+.crud-servicios-form select:focus,
+.crud-servicios-filtros input:focus,
+.crud-servicios-filtros select:focus {
+    outline: none;
+    border-color: #c2410c;
+    box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+}
+
+.crud-servicios-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.crud-servicios-mensaje {
+    margin-top: var(--spacing-md);
+    min-height: 1.5rem;
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+}
+
+.crud-servicios-mensaje.exito {
+    color: var(--color-success);
+}
+
+.crud-servicios-mensaje.error {
+    color: var(--color-danger);
+}
+
+.crud-servicios-panel-lista {
+    overflow: hidden;
+}
+
+.crud-servicios-lista-top {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+}
+
+.crud-servicios-filtros {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.crud-servicios-filtros input {
+    min-width: 240px;
+}
+
+.crud-servicios-tabla-wrap {
+    overflow: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.crud-servicios-tabla {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.crud-servicios-tabla thead th {
+    background: #f8fafc;
+    color: #c2410c;
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.crud-servicios-tabla tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: top;
+    color: var(--color-text);
+}
+
+.crud-servicios-tabla tbody tr:hover {
+    background: #f8fafc;
+}
+
+.crud-servicios-nombre {
+    font-weight: 700;
+    color: #c2410c;
+    margin-bottom: 0.35rem;
+}
+
+.crud-servicios-descripcion {
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.crud-servicios-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.switch-estado-servicio {
+    position: relative;
+    display: inline-flex;
+    width: 48px;
+    height: 28px;
+}
+
+.switch-estado-servicio input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider-servicio {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 999px;
+    transition: background-color var(--transition-base);
+    cursor: pointer;
+}
+
+.switch-slider-servicio::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform var(--transition-base);
+}
+
+.switch-estado-servicio input:checked + .switch-slider-servicio {
+    background: #22c55e;
+}
+
+.switch-estado-servicio input:checked + .switch-slider-servicio::before {
+    transform: translateX(20px);
+}
+
+.switch-estado-servicio input:disabled + .switch-slider-servicio {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+@media (max-width: 1024px) {
+    .crud-servicios-header,
+    .crud-servicios-lista-top {
+        flex-direction: column;
+    }
+
+    .crud-servicios-actions,
+    .crud-servicios-filtros {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .crud-servicios-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .crud-servicios-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .crud-servicios-filtros input,
+    .crud-servicios-filtros select {
+        min-width: 100%;
+    }
+
+    .crud-servicios-tabla {
+        min-width: 800px;
+    }
+}
+
+/* ============================================
    CARDS - CLIENTES
    ============================================ */
 
@@ -1257,242 +1565,6 @@ form button[type="submit"]:hover {
     margin: 0;
 }
 
-/* ============================================
-   GALERÍA DE MINIATURAS EN SIDEBAR
-   ============================================ */
-
-.sidebar-gallery {
-    padding: var(--spacing-md);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: var(--spacing-md);
-}
-
-.sidebar-gallery h3 {
-    color: var(--color-white);
-    font-size: var(--font-size-base);
-    margin-bottom: var(--spacing-xs);
-}
-
-.gallery-subtitle {
-    color: rgba(255, 255, 255, 0.86);
-    font-size: 12px;
-    margin-bottom: var(--spacing-sm);
-}
-
-/* Controles de visualización */
-.gallery-controls {
-    display: flex;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-sm);
-}
-
-.gallery-view-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: var(--color-white);
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.gallery-view-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.gallery-view-btn.active {
-    background: var(--color-accent);
-    color: var(--color-white);
-}
-
-/* Vista Grid */
-.habitaciones-gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-sm);
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-/* Scrollbar personalizada */
-.habitaciones-gallery-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.habitaciones-gallery-grid::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-}
-
-.habitaciones-gallery-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-}
-
-.gallery-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.gallery-item:hover {
-    transform: scale(1.05);
-    border-color: var(--color-accent);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.gallery-item img {
-    width: 100%;
-    height: 70px;
-    object-fit: cover;
-    display: block;
-}
-
-.gallery-item-info {
-    padding: 6px;
-}
-
-.gallery-item-info h4 {
-    color: var(--color-white);
-    font-size: 11px;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.gallery-item-info p {
-    color: rgba(255, 255, 255, 0.88);
-    font-size: 10px;
-    margin: 2px 0 0 0;
-}
-
-.gallery-item-info .precio {
-    color: var(--color-accent);
-    font-weight: bold;
-}
-
-/* Vista Carrusel */
-.habitaciones-gallery-carousel {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
-.carousel-track-container {
-    flex: 1;
-    overflow: hidden;
-}
-
-.carousel-track {
-    display: flex;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    transition: transform 0.3s ease;
-}
-
-.carousel-slide {
-    min-width: 100%;
-    padding: 0 4px;
-}
-
-.carousel-slide .gallery-item {
-    max-width: 100%;
-}
-
-.carousel-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: var(--color-white);
-    padding: 8px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.carousel-btn:hover {
-    background: var(--color-accent);
-    transform: scale(1.1);
-}
-
-/* Mensaje cuando no hay habitaciones */
-.sidebar-gallery .mensaje-vacio {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 12px;
-    text-align: center;
-    padding: var(--spacing-md);
-}
-
-/* ============================================
-   ESTILOS PARA CLIENTES EN SIDEBAR
-   ============================================ */
-
-.clientes-gallery-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    max-height: 200px;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-/* Scrollbar personalizada */
-.clientes-gallery-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.clientes-gallery-grid::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-}
-
-.clientes-gallery-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-}
-
-.cliente-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    padding: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.cliente-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.cliente-item-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.cliente-item-info h4 {
-    color: var(--color-white);
-    font-size: 12px;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.cliente-item-info p {
-    color: rgba(255, 255, 255, 0.88);
-    font-size: 10px;
-    margin: 0;
-}
-
 /* Formulario de registro de clientes en sidebar */
 .form-cliente-sidebar {
     display: flex !important;
@@ -1567,23 +1639,6 @@ form button[type="submit"]:hover {
 .mensaje-registro.error {
     background: #f8d7da;
     color: #721c24;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .habitaciones-gallery-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .gallery-item img {
-        height: 60px;
-    }
-}
-
-@media (max-width: 480px) {
-    .habitaciones-gallery-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Overlay oscuro */
