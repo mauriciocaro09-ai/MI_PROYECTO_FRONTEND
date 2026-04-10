@@ -37,6 +37,29 @@ function getApiLastError() {
     return apiRuntimeState.lastError;
 }
 
+async function extraerMensajeErrorRespuesta(response) {
+    const contentType = response.headers.get('content-type') || '';
+
+    try {
+        if (contentType.includes('application/json')) {
+            const data = await response.json();
+
+            if (typeof data === 'string' && data.trim()) {
+                return data.trim();
+            }
+
+            if (data && typeof data === 'object') {
+                return data.message || data.mensaje || data.error || data.detail || null;
+            }
+        }
+
+        const text = await response.text();
+        return text?.trim() || null;
+    } catch {
+        return null;
+    }
+}
+
 if (typeof window !== 'undefined') {
     window.getApiLastError = getApiLastError;
 }
@@ -60,7 +83,12 @@ async function requestJson(endpoint, options = {}) {
         });
 
         if (!response.ok) {
-            throw new Error(`${method} ${endpoint} -> ${response.status} ${response.statusText}`);
+            const mensajeBackend = await extraerMensajeErrorRespuesta(response);
+            const mensajeError = mensajeBackend
+                ? mensajeBackend
+                : `${method} ${endpoint} -> ${response.status} ${response.statusText}`;
+
+            throw new Error(mensajeError);
         }
 
         if (allowNoContent && response.status === 204) {
@@ -134,132 +162,8 @@ async function eliminarHabitacion(id) {
     }
 }
 
-async function obtenerClientes() {
-    apiLogger.log('Obteniendo clientes...');
-    try {
-        const data = await requestJson('/clientes');
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        apiLogger.error('Error al obtener clientes:', error.message);
-        return [];
-    }
-}
 
-async function obtenerClientePorId(id) {
-    apiLogger.log('Obteniendo cliente por ID:', id);
-    try {
-        return await requestJson(`/clientes/${id}`);
-    } catch (error) {
-        apiLogger.error('Error al obtener cliente:', error.message);
-        return null;
-    }
-}
 
-async function crearCliente(cliente) {
-    apiLogger.log('Creando cliente:', cliente);
-    try {
-        return await requestJson('/clientes', { method: 'POST', body: cliente });
-    } catch (error) {
-        apiLogger.error('Error al crear cliente:', error.message);
-        return null;
-    }
-}
-
-async function actualizarCliente(id, cliente) {
-    apiLogger.log('Actualizando cliente:', id, cliente);
-    try {
-        return await requestJson(`/clientes/${id}`, { method: 'PUT', body: cliente });
-    } catch (error) {
-        apiLogger.error('Error al actualizar cliente:', error.message);
-        return null;
-    }
-}
-
-async function eliminarCliente(id) {
-    apiLogger.log('Eliminando cliente:', id);
-    try {
-        return await requestJson(`/clientes/${id}`, { method: 'DELETE', allowNoContent: true });
-    } catch (error) {
-        apiLogger.error('Error al eliminar cliente:', error.message);
-        return null;
-    }
-}
-
-async function obtenerReservas() {
-    apiLogger.log('Obteniendo reservas...');
-    try {
-        const data = await requestJson('/reservas');
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        apiLogger.error('Error al obtener reservas:', error.message);
-        return [];
-    }
-}
-
-async function obtenerEstadosReserva() {
-    apiLogger.log('Obteniendo estados de reserva...');
-    try {
-        const data = await requestJson('/reservas/estados');
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        apiLogger.error('Error al obtener estados de reserva:', error.message);
-        return [];
-    }
-}
-
-async function obtenerReservasPorCliente(nroDocumento) {
-    apiLogger.log('Obteniendo reservas por cliente:', nroDocumento);
-
-    if (!nroDocumento) return [];
-
-    try {
-        const data = await requestJson(`/reservas/cliente/${encodeURIComponent(nroDocumento)}`);
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        apiLogger.error('Error al obtener reservas por cliente:', error.message);
-        return [];
-    }
-}
-
-async function obtenerReservaPorId(id) {
-    apiLogger.log('Obteniendo reserva por ID:', id);
-    try {
-        return await requestJson(`/reservas/${id}`);
-    } catch (error) {
-        apiLogger.error('Error al obtener reserva:', error.message);
-        return null;
-    }
-}
-
-async function crearReserva(reserva) {
-    apiLogger.log('Creando reserva:', reserva);
-    try {
-        return await requestJson('/reservas', { method: 'POST', body: reserva });
-    } catch (error) {
-        apiLogger.error('Error al crear reserva:', error.message);
-        return null;
-    }
-}
-
-async function actualizarReserva(id, reserva) {
-    apiLogger.log('Actualizando reserva:', id, reserva);
-    try {
-        return await requestJson(`/reservas/${id}`, { method: 'PUT', body: reserva });
-    } catch (error) {
-        apiLogger.error('Error al actualizar reserva:', error.message);
-        return null;
-    }
-}
-
-async function eliminarReserva(id) {
-    apiLogger.log('Eliminando reserva:', id);
-    try {
-        return await requestJson(`/reservas/${id}`, { method: 'DELETE', allowNoContent: true });
-    } catch (error) {
-        apiLogger.error('Error al eliminar reserva:', error.message);
-        return null;
-    }
-}
 
 async function obtenerServicios() {
     apiLogger.log('Obteniendo servicios...');
@@ -312,47 +216,3 @@ async function eliminarServicio(id) {
     }
 }
 
-// ============================================
-// FUNCIONES PARA SERVICIOS EN RESERVAS
-// ============================================
-
-async function obtenerServiciosPorReserva(idReserva, estado = 1) {
-    apiLogger.log('Obteniendo servicios por reserva:', idReserva, 'estado:', estado);
-    try {
-        let endpoint = `/reservas/${idReserva}/servicios`;
-        if (estado !== undefined && estado !== null) {
-            endpoint += `?estado=${estado}`;
-        }
-        const data = await requestJson(endpoint);
-        return Array.isArray(data) ? data : (data?.value ? data.value : []);
-    } catch (error) {
-        apiLogger.error('Error al obtener servicios por reserva:', error.message);
-        return [];
-    }
-}
-
-async function agregarServicioAReserva(idReserva, servicioData) {
-    apiLogger.log('Agregando servicio a reserva:', idReserva, servicioData);
-    try {
-        return await requestJson(`/reservas/${idReserva}/servicios`, {
-            method: 'POST',
-            body: servicioData
-        });
-    } catch (error) {
-        apiLogger.error('Error al agregar servicio a reserva:', error.message);
-        return null;
-    }
-}
-
-async function quitarServicioDereserva(idReserva, idDetalleServicio) {
-    apiLogger.log('Quitando servicio de reserva:', idReserva, 'detalle:', idDetalleServicio);
-    try {
-        return await requestJson(`/reservas/${idReserva}/servicios/${idDetalleServicio}`, {
-            method: 'DELETE',
-            allowNoContent: true
-        });
-    } catch (error) {
-        apiLogger.error('Error al quitar servicio de reserva:', error.message);
-        return null;
-    }
-}

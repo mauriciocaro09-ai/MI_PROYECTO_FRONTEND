@@ -53,6 +53,16 @@ header nav {
 header nav h1 {
     font-size: var(--font-size-xxl);
     font-weight: var(--font-weight-bold);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.header-brand-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    object-fit: contain;
+    flex: 0 0 auto;
 }
 
 header nav ul {
@@ -177,8 +187,6 @@ header nav a:hover {
    ============================================ */
 
 .habitaciones-section,
-.clientes-section,
-.reservas-section,
 .servicios-section {
     margin-bottom: var(--spacing-xl);
 }
@@ -198,8 +206,6 @@ header nav a:hover {
    ============================================ */
 
 .habitaciones-grid,
-.clientes-grid,
-.reservas-grid,
 .servicios-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -207,92 +213,6 @@ header nav a:hover {
     margin-top: var(--spacing-lg);
 }
 
-.form-busqueda-reservas {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    margin: 1.5rem 0 0.5rem;
-    padding: 1rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-}
-
-.form-busqueda-reservas input,
-.form-busqueda-reservas select {
-    min-width: 260px;
-    padding: 0.8rem 1rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 1rem;
-    background: #fff;
-    color: #0f172a;
-}
-
-.form-busqueda-reservas input::placeholder,
-.crud-habitaciones-form input::placeholder,
-.crud-habitaciones-form textarea::placeholder,
-.crud-habitaciones-filtros input::placeholder,
-form input::placeholder,
-form textarea::placeholder {
-    color: #475467;
-    opacity: 1;
-}
-
-.form-busqueda-reservas button {
-    padding: 0.8rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.form-busqueda-reservas button[type="submit"] {
-    background: #2c3e50;
-    color: #fff;
-}
-
-.form-busqueda-reservas button[type="button"] {
-    background: #e2e8f0;
-    color: #1e293b;
-}
-
-.filtros-reservas {
-    justify-content: flex-start;
-}
-
-.filtros-reservas input[type="date"] {
-    min-width: 180px;
-}
-
-.filtros-reservas button[type="submit"] {
-    background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
-    color: #fff;
-}
-
-.filtros-reservas button[type="button"] {
-    background: #e2e8f0;
-    color: #1e293b;
-}
-
-.reservas-header-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.btn-restaurar-reservas {
-    padding: 8px 12px;
-    background: #ff9800;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
 
 .habitacion-selector-row {
     display: flex;
@@ -497,6 +417,16 @@ form textarea::placeholder {
     margin-bottom: var(--spacing-lg);
 }
 
+.crud-habitaciones-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 1205;
+}
+
 .crud-habitaciones-summary article {
     background: var(--color-white);
     border: 1px solid #e2e8f0;
@@ -591,6 +521,14 @@ form textarea::placeholder {
     min-height: 1.5rem;
     color: var(--color-text-light);
     font-size: var(--font-size-sm);
+    position: relative;
+    z-index: 1206;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
 .crud-habitaciones-mensaje.exito {
@@ -625,6 +563,55 @@ form textarea::placeholder {
 }
 
 .crud-habitaciones-panel-lista {
+    overflow: hidden;
+    grid-column: 1 / -1;
+}
+
+.crud-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    background: rgba(15, 23, 42, 0.55);
+    padding: 1rem;
+}
+
+.crud-modal-content {
+    width: min(620px, 100%);
+    max-height: 84vh;
+    overflow: auto;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.25);
+    padding: var(--spacing-lg);
+    position: relative;
+}
+
+.crud-modal-content .crud-habitaciones-mensaje,
+.crud-modal-content .crud-servicios-mensaje {
+    margin: 0.75rem 0 0.25rem;
+    width: 100%;
+}
+
+.crud-modal-close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.8rem;
+    border: none;
+    background: transparent;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #64748b;
+}
+
+.crud-modal-close:hover {
+    color: #0f172a;
+}
+
+body.modal-open {
     overflow: hidden;
 }
 
@@ -743,7 +730,7 @@ form textarea::placeholder {
 .switch-slider {
     position: absolute;
     inset: 0;
-    background: #cbd5e1;
+    background: #ef4444;
     border-radius: 999px;
     transition: background-color var(--transition-base);
     cursor: pointer;
@@ -792,6 +779,46 @@ form textarea::placeholder {
 .btn-mini-eliminar {
     background: #fee2e2;
     color: #b91c1c;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.9rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.pagination-btn {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #0f172a;
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .estado.estado-disponible {
@@ -882,6 +909,16 @@ form textarea::placeholder {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
+}
+
+.crud-servicios-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 1205;
 }
 
 .crud-servicios-summary article {
@@ -978,6 +1015,14 @@ form textarea::placeholder {
     min-height: 1.5rem;
     color: var(--color-text-light);
     font-size: var(--font-size-sm);
+    position: relative;
+    z-index: 1206;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
 .crud-servicios-mensaje.exito {
@@ -990,6 +1035,7 @@ form textarea::placeholder {
 
 .crud-servicios-panel-lista {
     overflow: hidden;
+    grid-column: 1 / -1;
 }
 
 .crud-servicios-lista-top {
@@ -1080,7 +1126,7 @@ form textarea::placeholder {
 .switch-slider-servicio {
     position: absolute;
     inset: 0;
-    background: #cbd5e1;
+    background: #ef4444;
     border-radius: 999px;
     transition: background-color var(--transition-base);
     cursor: pointer;
@@ -1142,60 +1188,6 @@ form textarea::placeholder {
     .crud-servicios-tabla {
         min-width: 800px;
     }
-}
-
-/* ============================================
-   CARDS - CLIENTES
-   ============================================ */
-
-.cliente-card {
-    background: var(--color-white);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    padding: var(--spacing-md);
-    transition: box-shadow var(--transition-base);
-}
-
-.cliente-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.cliente-card h3 {
-    color: var(--color-primary);
-    margin-bottom: var(--spacing-sm);
-    font-size: var(--font-size-lg);
-}
-
-.cliente-card p {
-    margin-bottom: var(--spacing-xs);
-    color: var(--color-text-light);
-    font-size: var(--font-size-sm);
-}
-
-.cliente-card strong {
-    color: var(--color-text);
-}
-
-/* ============================================
-   CARDS - RESERVAS
-   ============================================ */
-
-.reserva-card {
-    background: var(--color-white);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    padding: var(--spacing-md);
-    border-left: 4px solid var(--color-secondary);
-}
-
-.reserva-card h3 {
-    color: var(--color-primary);
-    margin-bottom: var(--spacing-sm);
-}
-
-.reserva-card p {
-    margin-bottom: var(--spacing-xs);
-    font-size: var(--font-size-sm);
 }
 
 /* ============================================
@@ -1565,63 +1557,6 @@ form button[type="submit"]:hover {
     margin: 0;
 }
 
-/* Formulario de registro de clientes en sidebar */
-.form-cliente-sidebar {
-    display: flex !important;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.form-cliente-sidebar input {
-    padding: 10px 12px !important;
-    border: 1px solid rgba(255, 255, 255, 0.5) !important;
-    border-radius: 6px;
-    font-size: 14px;
-    width: 100%;
-    height: 42px !important;
-    min-height: 42px;
-    box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.9) !important;
-    color: #333 !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-.form-cliente-sidebar input::placeholder {
-    color: #333;
-}
-
-.form-cliente-sidebar input:focus {
-    outline: none;
-    border-color: var(--color-primary);
-}
-
-.btn-registrar-cliente {
-    padding: 12px 20px !important;
-    background: #2ecc71 !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: background 0.2s;
-    visibility: visible !important;
-    opacity: 1 !important;
-    display: block !important;
-    height: auto;
-}
-
-.btn-registrar-cliente:hover {
-    background: var(--color-primary-dark);
-}
 
 .mensaje-registro {
     padding: 8px;
@@ -1692,16 +1627,12 @@ form button[type="submit"]:hover {
    ESTILOS PARA LAS SECCIONES DEL SIDEBAR
    ============================================ */
 
-.clientes-section,
-.reservas-section,
 .servicios-section {
     padding: var(--spacing-lg);
     max-width: 1200px;
     margin: 0 auto;
 }
 
-.clientes-section h3,
-.reservas-section h3,
 .servicios-section h3 {
     color: var(--color-primary);
     font-size: var(--font-size-2xl);
@@ -1709,7 +1640,6 @@ form button[type="submit"]:hover {
     text-align: center;
 }
 
-.clientes-grid,
 .servicios-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1748,88 +1678,7 @@ form button[type="submit"]:hover {
     padding-bottom: var(--spacing-sm);
 }
 
-.reserva-card p {
-    margin: var(--spacing-xs) 0;
-    color: var(--color-text);
-    line-height: 1.5;
-}
 
-.reserva-card p strong {
-    color: var(--color-text-dark);
-    font-weight: 600;
-}
-
-.reserva-card .estado {
-    display: inline-block;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-top: var(--spacing-sm);
-}
-
-.reserva-card .estado.pendiente {
-    background-color: var(--color-warning-light);
-    color: var(--color-warning-dark);
-}
-
-.reserva-card .estado.confirmada {
-    background-color: var(--color-success-light);
-    color: var(--color-success-dark);
-}
-
-.reserva-card .estado.cancelada {
-    background-color: var(--color-error-light);
-    color: var(--color-error-dark);
-}
-
-/* Estilos para los items del resumen de reserva */
-.resumen-reserva {
-    background: #f8f9fa;
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-sm);
-    margin-bottom: var(--spacing-md);
-}
-
-.resumen-reserva h4 {
-    color: var(--color-primary);
-    margin-bottom: var(--spacing-sm);
-    font-size: var(--font-size-lg);
-}
-
-.resumen-item p {
-    margin-bottom: var(--spacing-xs);
-    color: var(--color-text);
-}
-
-.resumen-item .total {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-success);
-    margin-top: var(--spacing-sm);
-    padding-top: var(--spacing-sm);
-    border-top: 2px solid var(--color-success);
-}
-
-/* Formulario de reserva */
-.form-reserva {
-    max-width: 800px;
-}
-
-.form-reserva fieldset {
-    border: 1px solid var(--color-gray);
-    border-radius: var(--border-radius-sm);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-    background: var(--color-white);
-}
-
-.form-reserva legend {
-    color: var(--color-primary);
-    font-weight: var(--font-weight-bold);
-    padding: 0 var(--spacing-sm);
-}
 
 .form-group {
     margin-bottom: var(--spacing-md);
@@ -1873,36 +1722,6 @@ form button[type="submit"]:hover {
     }
 }
 
-.info-habitacion {
-    background: #e8f4f8;
-    padding: var(--spacing-md);
-    border-radius: var(--border-radius-sm);
-    margin-top: var(--spacing-sm);
-    border-left: 4px solid var(--color-secondary);
-}
-
-.info-habitacion p {
-    margin-bottom: var(--spacing-xs);
-    color: var(--color-text);
-}
-
-.btn-reservar {
-    width: 100%;
-    padding: var(--spacing-md);
-    background: linear-gradient(135deg, var(--color-success) 0%, #27ae60 100%);
-    color: var(--color-white);
-    border: none;
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    cursor: pointer;
-    transition: all var(--transition-base);
-}
-
-.btn-reservar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
-}
 
 /* ============================================
    RESPONSIVE
@@ -1910,8 +1729,6 @@ form button[type="submit"]:hover {
 
 @media (max-width: 768px) {
     .habitaciones-grid,
-    .clientes-grid,
-    .reservas-grid,
     .servicios-grid {
         grid-template-columns: 1fr;
     }
@@ -1949,13 +1766,6 @@ form button[type="submit"]:hover {
         font-size: var(--font-size-xl);
     }
 }
-/* Estilos para botones de cliente */
-.cliente-acciones {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-}
-
 .btn-editar,
 .btn-eliminar {
     padding: 5px 10px;
@@ -2055,26 +1865,18 @@ main {
     margin: 0 auto;
 }
 
-.habitaciones-section h3,
-.clientes-section h3,
-.reservas-section h3,
 .servicios-section h3 {
     font-family: var(--font-family-heading);
     color: var(--color-primary-dark);
     letter-spacing: 0.3px;
 }
 
-.habitacion-card,
-.cliente-card,
-.reserva-card,
 .servicio-card {
     border: 1px solid rgba(16, 24, 40, 0.08);
     border-radius: 14px;
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
-.habitacion-card:hover,
-.cliente-card:hover,
 .reserva-card:hover,
 .servicio-card:hover {
     transform: translateY(-4px);

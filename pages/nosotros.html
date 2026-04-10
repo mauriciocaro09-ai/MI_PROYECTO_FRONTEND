@@ -25,30 +25,23 @@
         </div>
         
         <nav class="sidebar-nav">
-            <h3>Tablas de Datos</h3>
             <ul>
                 <li>
-                    <a href="#" onclick="cargarSeccion('habitaciones', event)">
+                    <a href="../index.html#seccion-administrar-habitaciones">
                         <span class="icon">🛏️</span>
-                        <span class="text">Habitaciones</span>
+                        <span class="text">Administrar habitaciones</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" onclick="cargarSeccion('clientes', event)">
-                        <span class="icon">👥</span>
-                        <span class="text">Clientes</span>
+                    <a href="../index.html#seccion-administrar-servicios">
+                        <span class="icon">☕</span>
+                        <span class="text">Administrar servicios</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" onclick="cargarSeccion('reservas', event)">
                         <span class="icon">📅</span>
                         <span class="text">Reservas</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" onclick="cargarSeccion('servicios', event)">
-                        <span class="icon">🧖</span>
-                        <span class="text">Servicios</span>
                     </a>
                 </li>
             </ul>
@@ -89,18 +82,6 @@
         <!-- Sección de Clientes -->
         <div class="sidebar-gallery clientes-section">
             <h3>👥 Clientes</h3>
-            <p class="gallery-subtitle">Registro</p>
-            
-            <!-- Formulario de registro de clientes -->
-            <form id="form-registro-cliente" class="form-cliente-sidebar">
-                <input type="text" id="cliente-nombre" placeholder="Nombre" required>
-                <input type="email" id="cliente-email" placeholder="Email" required>
-                <input type="tel" id="cliente-telefono" placeholder="Teléfono" required>
-                <input type="text" id="cliente-direccion" placeholder="Dirección" required>
-                <button type="submit" class="btn-registrar-cliente">Registrar</button>
-            </form>
-            <div id="mensaje-registro-cliente" class="mensaje-registro"></div>
-            
             <!-- Lista de clientes -->
             <div id="clientes-gallery-grid" class="clientes-gallery-grid">
                 <p class="mensaje-vacio">Cargando...</p>
@@ -120,11 +101,10 @@
         <!-- Header y Navegación -->
         <header>
             <nav>
-                <h1>🏨 Hospedaje Digital</h1>
+                <h1><img src="../assets/images/cabana.svg" alt="Cabaña" class="header-brand-icon"> Hospedaje Digital</h1>
                 <ul>
                     <li><a href="../index.html">Inicio</a></li>
                     <li><a href="nosotros.html">Nosotros</a></li>
-                    <li><a href="reservas.html">Reservas</a></li>
                     <li><a href="contacto.html">Contacto</a></li>
                 </ul>
             </nav>

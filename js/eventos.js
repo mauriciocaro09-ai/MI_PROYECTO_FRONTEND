@@ -66,69 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ordenarPorPrecio(e.target.value);
         });
     }
-    
-    // Formulario de reserva
-    const formReserva = document.getElementById('form-reserva');
-    if (formReserva) {
-        formReserva.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const reserva = {
-                cliente_id: parseInt(document.getElementById('cliente_id').value),
-                habitacion_id: parseInt(document.getElementById('habitacion_id').value),
-                fecha_entrada: document.getElementById('fecha_entrada').value,
-                fecha_salida: document.getElementById('fecha_salida').value,
-                estado: 'confirmada'
-            };
-            
-            console.log('Creando reserva:', reserva);
-            const resultado = await crearReserva(reserva);
-            
-            if (resultado) {
-                alert('¡Reserva creada exitosamente!');
-                formReserva.reset();
-                // Recargar reservas si existe el contenedor
-                if (document.getElementById('reservas')) {
-                    cargarReservas();
-                }
-            } else {
-                alert('Error al crear la reserva. Verifica los datos.');
-            }
-        });
-    }
-    
-    // Formulario de cliente
-    const formCliente = document.getElementById('form-cliente');
-    if (formCliente) {
-        formCliente.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const cliente = {
-                NroDocumento: document.getElementById('numero_documento').value,
-                Nombre: document.getElementById('nombre').value,
-                Apellido: document.getElementById('apellido').value,
-                Email: document.getElementById('email').value,
-                Telefono: document.getElementById('telefono').value,
-                Direccion: document.getElementById('direccion').value,
-                Estado: 1,
-                IDRol: 1
-            };
-            
-            console.log('Creando cliente:', cliente);
-            const resultado = await crearCliente(cliente);
-            
-            if (resultado) {
-                alert('¡Cliente registrado exitosamente!');
-                formCliente.reset();
-                // Recargar clientes si existe el contenedor
-                if (document.getElementById('clientes')) {
-                    cargarClientes();
-                }
-            } else {
-                alert('Error al registrar el cliente. Verifica los datos.');
-            }
-        });
-    }
 });
 
 // ============================================
@@ -148,22 +85,3 @@ function limpiarFiltros() {
     cargarHabitaciones();
 }
 
-// Validar fechas de reserva
-function validarFechasReserva(fechaEntrada, fechaSalida) {
-    const entrada = new Date(fechaEntrada);
-    const salida = new Date(fechaSalida);
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    if (entrada < hoy) {
-        alert('La fecha de entrada no puede ser anterior a hoy');
-        return false;
-    }
-    
-    if (salida <= entrada) {
-        alert('La fecha de salida debe ser posterior a la fecha de entrada');
-        return false;
-    }
-    
-    return true;
-}

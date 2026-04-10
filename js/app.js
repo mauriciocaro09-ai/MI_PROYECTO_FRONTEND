@@ -5,11 +5,84 @@
 let habitacionesAdminCargadas = [];
 let habitacionAdminImagenArchivoBase64 = '';
 let serviciosCargados = [];
-let reservasCargadas = [];
-let estadosReservaCargados = [];
 let lastShownApiError = null;
 
+const paginationState = {
+    habitaciones: { page: 1, pageSize: 6 },
+    servicios: { page: 1, pageSize: 6 },
+    habitacionesAdmin: { page: 1, pageSize: 6 },
+    serviciosAdmin: { page: 1, pageSize: 8 }
+};
+
 const CLAVE_CONTRASTE_ALTO = 'hospedaje_alto_contraste';
+
+const ensurePaginationState = (key) => {
+    if (!paginationState[key]) {
+        paginationState[key] = { page: 1, pageSize: 8 };
+    }
+
+    return paginationState[key];
+};
+
+const resetPagination = (key) => {
+    ensurePaginationState(key).page = 1;
+};
+
+const getPaginatedItems = (items, key) => {
+    const state = ensurePaginationState(key);
+    const list = Array.isArray(items) ? items : [];
+    const totalItems = list.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / state.pageSize));
+
+    if (state.page > totalPages) state.page = totalPages;
+    if (state.page < 1) state.page = 1;
+
+    const startIndex = (state.page - 1) * state.pageSize;
+    const endIndex = startIndex + state.pageSize;
+
+    return {
+        items: list.slice(startIndex, endIndex),
+        totalItems,
+        totalPages,
+        currentPage: state.page
+    };
+};
+
+const renderPaginationControls = (key, anchorElement, totalItems, totalPages, currentPage, onPageChange) => {
+    if (!anchorElement) return;
+
+    const containerId = `pagination-${key}`;
+    let controls = document.getElementById(containerId);
+
+    if (!controls) {
+        controls = document.createElement('div');
+        controls.id = containerId;
+        controls.className = 'pagination-controls';
+        anchorElement.insertAdjacentElement('afterend', controls);
+    }
+
+    if (totalItems === 0 || totalPages <= 1) {
+        controls.innerHTML = '';
+        controls.classList.add('hidden');
+        return;
+    }
+
+    controls.classList.remove('hidden');
+    controls.innerHTML = `
+        <button type="button" class="pagination-btn" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>Anterior</button>
+        <span class="pagination-info">Página ${currentPage} de ${totalPages} (${totalItems} registros)</span>
+        <button type="button" class="pagination-btn" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>Siguiente</button>
+    `;
+
+    controls.querySelectorAll('.pagination-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+            const nextPage = Number(button.dataset.page);
+            const state = ensurePaginationState(key);
+            state.page = Math.min(Math.max(1, nextPage), totalPages);
+            onPageChange();
+        });
+    });
+};
 
 const normalizarTexto = (valor) => String(valor ?? '').trim().toLowerCase();
 
@@ -24,83 +97,7 @@ const normalizarFecha = (valor) => {
     return fecha.toISOString().slice(0, 10);
 };
 
-const obtenerFiltrosReservas = () => {
-    const documento = document.getElementById('documento-buscar-reservas');
-    const estado = document.getElementById('estado-buscar-reservas');
-    const fechaDesde = document.getElementById('fecha-desde-reservas');
-    const fechaHasta = document.getElementById('fecha-hasta-reservas');
 
-    return {
-        documento: normalizarTexto(documento?.value),
-        estado: String(estado?.value || ''),
-        fechaDesde: fechaDesde?.value || '',
-        fechaHasta: fechaHasta?.value || ''
-    };
-};
-
-const obtenerNombreEstadoReserva = (reserva) => {
-    return reserva.EstadoReservaNombre
-        || reserva.NombreEstadoReserva
-    || reserva.estadoNombre
-        || 'Desconocido';
-};
-
-const obtenerClaseEstadoReserva = (nombreEstado) => {
-    const normalizado = normalizarTexto(nombreEstado);
-
-    if (normalizado.includes('pend')) return 'pendiente';
-    if (normalizado.includes('conf')) return 'confirmada';
-    if (normalizado.includes('cancel')) return 'cancelada';
-
-    return normalizado.replace(/\s+/g, '-');
-};
-
-async function cargarEstadosReserva() {
-    const select = document.getElementById('estado-buscar-reservas');
-    if (!select) return;
-
-    try {
-        estadosReservaCargados = await obtenerEstadosReserva();
-    } catch (error) {
-        console.error('Error cargando estados de reserva:', error);
-        estadosReservaCargados = [];
-    }
-
-    const estados = Array.isArray(estadosReservaCargados) && estadosReservaCargados.length > 0
-        ? estadosReservaCargados
-        : [];
-
-    select.innerHTML = '<option value="">Todos los estados</option>';
-
-    if (estados.length === 0) {
-        console.warn('No se pudieron cargar estados de reserva desde la base de datos');
-        return;
-    }
-
-    estados.forEach((estado) => {
-        const option = document.createElement('option');
-        option.value = String(estado.IdEstadoReserva);
-        option.textContent = estado.NombreEstadoReserva;
-        select.appendChild(option);
-    });
-}
-
-const aplicarFiltrosReservas = (reservas) => {
-    const filtros = obtenerFiltrosReservas();
-
-    return (reservas || []).filter((reserva) => {
-        const documentoReserva = normalizarTexto(reserva.NroDocumentoCliente || reserva.NroDocumento);
-        const estadoReserva = String(Number(reserva.IdEstadoReserva || reserva.IdEstado || reserva.estadoId || ''));
-        const fechaReserva = normalizarFecha(reserva.FechaInicio || reserva.FechaReserva || reserva.FechaFinalizacion);
-
-        const coincideDocumento = !filtros.documento || documentoReserva.includes(filtros.documento);
-        const coincideEstado = !filtros.estado || estadoReserva === filtros.estado;
-        const coincideFechaDesde = !filtros.fechaDesde || (fechaReserva && fechaReserva >= filtros.fechaDesde);
-        const coincideFechaHasta = !filtros.fechaHasta || (fechaReserva && fechaReserva <= filtros.fechaHasta);
-
-        return coincideDocumento && coincideEstado && coincideFechaDesde && coincideFechaHasta;
-    });
-};
 
 const notificarErrorBackend = (contexto) => {
     const apiError = typeof getApiLastError === 'function' ? getApiLastError() : null;
@@ -196,63 +193,7 @@ function precargarImagen(url) {
     });
 }
 
-// Función para registrar un nuevo cliente
-async function registrarCliente(event) {
-    event.preventDefault();
-    
-    const nombre = document.getElementById('cliente-nombre').value;
-    const email = document.getElementById('cliente-email').value;
-    const telefono = document.getElementById('cliente-telefono').value;
-    const direccion = document.getElementById('cliente-direccion').value;
-    
-    const mensajeDiv = document.getElementById('mensaje-registro-cliente');
-    
-    try {
-        const response = await fetch('http://localhost:3000/api/clientes', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                NroDocumento: 'TEMP-' + Date.now(),
-                Nombre: nombre,
-                Email: email,
-                Telefono: telefono,
-                Direccion: direccion,
-                Estado: 1,
-                IDRol: 1
-            })
-        });
-        
-        if (response.ok) {
-            mensajeDiv.textContent = 'Cliente registrado exitosamente';
-            mensajeDiv.className = 'mensaje-registro exito';
-            
-            // Limpiar formulario
-            document.getElementById('form-registro-cliente').reset();
-            
-            // Ocultar mensaje después de 3 segundos
-            setTimeout(() => {
-                mensajeDiv.textContent = '';
-                mensajeDiv.className = 'mensaje-registro';
-            }, 3000);
-        } else {
-            throw new Error('Error al registrar cliente');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        mensajeDiv.textContent = 'Error al registrar cliente';
-        mensajeDiv.className = 'mensaje-registro error';
-    }
-}
 
-// Configurar formulario de registro de clientes
-function configurarFormularioRegistroCliente() {
-    const formulario = document.getElementById('form-registro-cliente');
-    if (formulario) {
-        formulario.addEventListener('submit', registrarCliente);
-    }
-}
 
 function mostrarHabitaciones(habitaciones) {
     const contenedor = document.getElementById('habitaciones');
@@ -260,13 +201,18 @@ function mostrarHabitaciones(habitaciones) {
     
     console.log('Habitaciones recibidas:', habitaciones);
     contenedor.innerHTML = '';
-    
-    if (!habitaciones || habitaciones.length === 0) {
+
+    const lista = Array.isArray(habitaciones) ? habitaciones : [];
+    const paginacion = getPaginatedItems(lista, 'habitaciones');
+    const habitacionesVisibles = paginacion.items;
+
+    if (lista.length === 0) {
         contenedor.innerHTML = '<p class="mensaje-vacio">No hay habitaciones disponibles</p>';
+        renderPaginationControls('habitaciones', contenedor, 0, 0, 1, () => mostrarHabitaciones(lista));
         return;
     }
-    
-    habitaciones.forEach(habitacion => {
+
+    habitacionesVisibles.forEach(habitacion => {
         const card = document.createElement('div');
         card.className = 'habitacion-card';
         // Usar la función para obtener la URL correcta
@@ -288,81 +234,12 @@ function mostrarHabitaciones(habitaciones) {
         `;
         contenedor.appendChild(card);
     });
+
+    renderPaginationControls('habitaciones', contenedor, paginacion.totalItems, paginacion.totalPages, paginacion.currentPage, () => mostrarHabitaciones(lista));
 }
 
-function mostrarClientes(clientes) {
-    const contenedor = document.getElementById('clientes');
-    if (!contenedor) return;
-    
-    console.log('Clientes recibidos:', clientes);
-    contenedor.innerHTML = '';
-    
-    if (!clientes || clientes.length === 0) {
-        contenedor.innerHTML = '<p class="mensaje-vacio">No hay clientes registrados</p>';
-        return;
-    }
-    
-    clientes.forEach(cliente => {
-        const card = document.createElement('div');
-        card.className = 'cliente-card';       
-        card.innerHTML = `
-            <h3>${cliente.Nombre || cliente.NombreCliente || 'Cliente'}</h3>
-            <p><strong>Email:</strong> ${cliente.Email || cliente.EmailCliente || 'Sin email'}</p>
-            <p><strong>Teléfono:</strong> ${cliente.Telefono || cliente.TelefonoCliente || 'Sin teléfono'}</p>
-            <p><strong>Documento:</strong> ${cliente.NroDocumento || cliente.IDCliente || 'Sin documento'}</p>
-        `;
-        contenedor.appendChild(card);
-    });
-}
 
-function mostrarReservas(reservas, mensajeVacio = 'No hay reservas registradas') {
-    const contenedor = document.getElementById('reservas');
-    if (!contenedor) return;
-    
-    console.log('Reservas recibidas:', reservas);
-    contenedor.innerHTML = '';
-    
-    if (!reservas || reservas.length === 0) {
-        contenedor.innerHTML = `<p class="mensaje-vacio">${mensajeVacio}</p>`;
-        return;
-    }
-    
-    reservas.forEach(reserva => {
-        const reservaId = reserva.IdReserva || reserva.IDReserva || reserva.id;
-        const estadoId = Number(reserva.IdEstadoReserva || reserva.IdEstado || reserva.estadoId || 1);
-        const nombreCliente = reserva.Nombre || reserva.NombreCliente || 'Sin nombre';
-        const apellidoCliente = reserva.Apellido || reserva.ApellidoCliente || '';
-        const documentoCliente = reserva.NroDocumentoCliente || reserva.NroDocumento || '';
-        const emailCliente = reserva.Email || reserva.EmailCliente || 'Sin email';
-        const habitacionId = reserva.IDHabitacion || reserva.idHabitacion || 'N/A';
-        const fechaInicio = reserva.FechaInicio || reserva.FechaEntrada || 'N/A';
-        const fechaFinalizacion = reserva.FechaFinalizacion || reserva.FechaSalida || 'N/A';
-        const subTotal = reserva.Sub_Total || reserva.CostoTotal || 0;
-        const iva = reserva.IVA || 0;
-        const total = reserva.Monto_Total || reserva.CostoTotal || 0;
-        const nombreEstado = obtenerNombreEstadoReserva(reserva);
-        const claseEstado = obtenerClaseEstadoReserva(nombreEstado);
 
-        const card = document.createElement('div');
-        card.className = 'reserva-card';
-        card.innerHTML = `
-            <h3>Reserva #${reservaId}</h3>
-            <p><strong>Cliente:</strong> ${nombreCliente} ${apellidoCliente} (${documentoCliente})</p>
-            <p><strong>Email:</strong> ${emailCliente}</p>
-            <p><strong>Habitación:</strong> ${habitacionId}</p>
-            <p><strong>Entrada:</strong> ${new Date(fechaInicio).toLocaleDateString()}</p>
-            <p><strong>Salida:</strong> ${new Date(fechaFinalizacion).toLocaleDateString()}</p>
-            <p><strong>Subtotal:</strong> $${subTotal}</p>
-            <p><strong>IVA:</strong> $${iva}</p>
-            <p><strong>Total:</strong> $${total}</p>
-            <span class="estado ${claseEstado}">${nombreEstado}</span>
-            <div class="reserva-acciones">
-                <button class="btn-eliminar" onclick="eliminarReservaUI(${reservaId})">Eliminar</button>
-            </div>
-        `;
-        contenedor.appendChild(card);
-    });
-}
 
 function mostrarServicios(servicios) {
     const contenedor = document.getElementById('servicios');
@@ -370,13 +247,18 @@ function mostrarServicios(servicios) {
     
     console.log('Servicios recibidos:', servicios);
     contenedor.innerHTML = '';
-    
-    if (!servicios || servicios.length === 0) {
+
+    const lista = Array.isArray(servicios) ? servicios : [];
+    const paginacion = getPaginatedItems(lista, 'servicios');
+    const serviciosVisibles = paginacion.items;
+
+    if (lista.length === 0) {
         contenedor.innerHTML = '<p class="mensaje-vacio">No hay servicios disponibles</p>';
+        renderPaginationControls('servicios', contenedor, 0, 0, 1, () => mostrarServicios(lista));
         return;
     }
-    
-    servicios.forEach(servicio => {
+
+    serviciosVisibles.forEach(servicio => {
         const card = document.createElement('div');
         card.className = 'servicio-card';
         card.innerHTML = `
@@ -386,6 +268,8 @@ function mostrarServicios(servicios) {
         `;
         contenedor.appendChild(card);
     });
+
+    renderPaginationControls('servicios', contenedor, paginacion.totalItems, paginacion.totalPages, paginacion.currentPage, () => mostrarServicios(lista));
 }
 
 // ============================================
@@ -397,81 +281,18 @@ async function cargarHabitaciones() {
     const habitaciones = await obtenerHabitaciones();
     console.log('Habitaciones obtenidas:', habitaciones);
     notificarErrorBackend('No se pudieron cargar habitaciones');
+    resetPagination('habitaciones');
     mostrarHabitaciones(habitaciones);
 }
 
-async function cargarClientes() {
-    console.log('Cargando clientes...');
-    const clientes = await obtenerClientes();
-    console.log('Clientes obtenidos:', clientes);
-    notificarErrorBackend('No se pudieron cargar clientes');
-    mostrarClientes(clientes);
-}
 
-async function cargarReservas() {
-    console.log('Cargando reservas...');
-    reservasCargadas = await obtenerReservas();
-    console.log('Reservas obtenidas:', reservasCargadas);
-    notificarErrorBackend('No se pudieron cargar reservas');
-    mostrarReservas(aplicarFiltrosReservas(reservasCargadas));
-}
-
-async function cargarReservasPorCliente(documento) {
-    const termino = String(documento || '').trim();
-
-    if (!termino) {
-        await cargarReservas();
-        return;
-    }
-
-    const documentoInput = document.getElementById('documento-buscar-reservas');
-    if (documentoInput) {
-        documentoInput.value = termino;
-    }
-
-    mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
-}
-
-function configurarBusquedaReservas() {
-    const formulario = document.getElementById('form-buscar-reservas');
-    const inputDocumento = document.getElementById('documento-buscar-reservas');
-    const selectEstado = document.getElementById('estado-buscar-reservas');
-    const inputFechaDesde = document.getElementById('fecha-desde-reservas');
-    const inputFechaHasta = document.getElementById('fecha-hasta-reservas');
-    const botonLimpiar = document.getElementById('limpiar-busqueda-reservas');
-
-    if (!formulario || !inputDocumento) return;
-
-    formulario.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
-    });
-
-    [inputDocumento, selectEstado, inputFechaDesde, inputFechaHasta].forEach((campo) => {
-        if (campo) {
-            campo.addEventListener('input', () => {
-                mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
-            });
-            campo.addEventListener('change', () => {
-                mostrarReservas(aplicarFiltrosReservas(reservasCargadas), 'No hay reservas que coincidan con los filtros');
-            });
-        }
-    });
-
-    if (botonLimpiar) {
-        botonLimpiar.addEventListener('click', async (event) => {
-            event.preventDefault();
-            formulario.reset();
-            await cargarReservas();
-        });
-    }
-}
 
 async function cargarServicios() {
     console.log('Cargando servicios...');
     const servicios = await obtenerServicios();
     console.log('Servicios obtenidos:', servicios);
     notificarErrorBackend('No se pudieron cargar servicios');
+    resetPagination('servicios');
     mostrarServicios(servicios);
 }
 
@@ -538,16 +359,143 @@ const obtenerImagenParaPayload = (habitacion) => {
 };
 
 const mostrarMensajeHabitacionAdmin = (texto, tipo = 'info') => {
-    const mensaje = document.getElementById('mensaje-habitacion-admin');
-    if (!mensaje) return;
+    const mensajes = [
+        document.getElementById('mensaje-habitacion-admin'),
+        document.getElementById('mensaje-habitacion-admin-modal')
+    ].filter(Boolean);
 
-    mensaje.textContent = texto || '';
-    mensaje.className = 'crud-habitaciones-mensaje';
+    if (!mensajes.length) return;
 
-    if (tipo === 'ok') {
-        mensaje.classList.add('exito');
-    } else if (tipo === 'error') {
-        mensaje.classList.add('error');
+    mensajes.forEach((mensaje) => {
+        mensaje.textContent = texto || '';
+        mensaje.className = 'crud-habitaciones-mensaje';
+
+        if (tipo === 'ok') {
+            mensaje.classList.add('exito');
+        } else if (tipo === 'error') {
+            mensaje.classList.add('error');
+        }
+    });
+};
+
+const esErrorDuplicadoBackend = (mensaje) => {
+    const texto = normalizarTexto(mensaje);
+    return /duplicate|duplicad|ya existe|unique|constraint|exists/.test(texto);
+};
+
+const obtenerMensajeErrorGuardado = (mensajeDuplicado, mensajeFallback) => {
+    const apiError = typeof getApiLastError === 'function' ? getApiLastError() : '';
+
+    if (apiError) {
+        if (esErrorDuplicadoBackend(apiError)) {
+            return mensajeDuplicado;
+        }
+
+        return apiError;
+    }
+
+    return mensajeFallback;
+};
+
+const cerrarModalesCRUD = () => {
+    const modales = [
+        document.getElementById('modal-habitacion-admin'),
+        document.getElementById('modal-servicio-admin')
+    ].filter(Boolean);
+
+    modales.forEach((modal) => {
+        modal.classList.add('hidden');
+    });
+
+    document.body.classList.remove('modal-open');
+};
+
+const nombresCoinciden = (valorA, valorB) => normalizarTexto(valorA) === normalizarTexto(valorB);
+
+const existeHabitacionConNombre = (nombre, idActual = '') => {
+    return habitacionesAdminCargadas.some((habitacion) => {
+        const mismoNombre = nombresCoinciden(habitacion.NombreHabitacion, nombre);
+        const mismoRegistro = String(obtenerIdHabitacion(habitacion)) === String(idActual);
+        return mismoNombre && !mismoRegistro;
+    });
+};
+
+const existeServicioConNombre = (nombre, idActual = '') => {
+    return serviciosCargados.some((servicio) => {
+        const mismoNombre = nombresCoinciden(servicio.NombreServicio, nombre);
+        const mismoRegistro = String(obtenerIdServicio(servicio)) === String(idActual);
+        return mismoNombre && !mismoRegistro;
+    });
+};
+
+const actualizarValidacionNombreHabitacionAdmin = () => {
+    const campoId = document.getElementById('habitacion-admin-id');
+    const campoNombre = document.getElementById('habitacion-admin-nombre');
+    if (!campoNombre) return;
+
+    const mensaje = document.getElementById('mensaje-habitacion-admin-modal');
+    const idActual = campoId?.value?.trim() || '';
+    const nombre = campoNombre.value?.trim() || '';
+    const duplicado = nombre ? existeHabitacionConNombre(nombre, idActual) : false;
+
+    campoNombre.setCustomValidity(duplicado ? 'Ya existe una habitación con ese nombre.' : '');
+    campoNombre.classList.toggle('input-error', duplicado);
+
+    if (duplicado) {
+        if (mensaje) {
+            mensaje.textContent = 'Ya existe una habitación con ese nombre. Usa otro nombre para poder guardarla.';
+            mensaje.className = 'crud-habitaciones-mensaje error';
+        }
+        return;
+    }
+
+    if (mensaje && normalizarTexto(mensaje.textContent).includes('ya existe una habitación con ese nombre')) {
+        mensaje.textContent = '';
+        mensaje.className = 'crud-habitaciones-mensaje';
+    }
+};
+
+const actualizarValidacionNombreServicioAdmin = () => {
+    const campoId = document.getElementById('servicio-admin-id');
+    const campoNombre = document.getElementById('servicio-admin-nombre');
+    if (!campoNombre) return;
+
+    const mensaje = document.getElementById('mensaje-servicio-admin-modal');
+    const idActual = campoId?.value?.trim() || '';
+    const nombre = campoNombre.value?.trim() || '';
+    const duplicado = nombre ? existeServicioConNombre(nombre, idActual) : false;
+
+    campoNombre.setCustomValidity(duplicado ? 'Ya existe un servicio con ese nombre.' : '');
+    campoNombre.classList.toggle('input-error', duplicado);
+
+    if (duplicado) {
+        if (mensaje) {
+            mensaje.textContent = 'Ya existe un servicio con ese nombre. Usa otro nombre para poder guardarlo.';
+            mensaje.className = 'crud-servicios-mensaje error';
+        }
+        return;
+    }
+
+    if (mensaje && normalizarTexto(mensaje.textContent).includes('ya existe un servicio con ese nombre')) {
+        mensaje.textContent = '';
+        mensaje.className = 'crud-servicios-mensaje';
+    }
+};
+
+const abrirModalHabitacionAdmin = () => {
+    cerrarModalesCRUD();
+    const modal = document.getElementById('modal-habitacion-admin');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+};
+
+const cerrarModalHabitacionAdmin = () => {
+    const modal = document.getElementById('modal-habitacion-admin');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    if (document.getElementById('modal-servicio-admin')?.classList.contains('hidden')) {
+        document.body.classList.remove('modal-open');
     }
 };
 
@@ -700,6 +648,8 @@ const renderizarHabitacionesAdmin = () => {
 
     const filtros = obtenerFiltrosHabitacionesAdmin();
     const habitacionesFiltradas = habitacionesAdminCargadas.filter((habitacion) => habitacionesAdminCoinciden(habitacion, filtros));
+    const paginacion = getPaginatedItems(habitacionesFiltradas, 'habitacionesAdmin');
+    const habitacionesVisibles = paginacion.items;
 
     actualizarResumenHabitacionesAdmin(habitacionesAdminCargadas);
 
@@ -709,10 +659,12 @@ const renderizarHabitacionesAdmin = () => {
                 <td colspan="6" class="mensaje-vacio">No hay habitaciones que coincidan con el filtro actual.</td>
             </tr>
         `;
+        const tablaWrapVacio = contenedor.closest('.crud-habitaciones-tabla-wrap') || contenedor;
+        renderPaginationControls('habitacionesAdmin', tablaWrapVacio, 0, 0, 1, renderizarHabitacionesAdmin);
         return;
     }
 
-    contenedor.innerHTML = habitacionesFiltradas.map((habitacion) => {
+    contenedor.innerHTML = habitacionesVisibles.map((habitacion) => {
         const idHabitacion = obtenerIdHabitacion(habitacion);
         const estado = normalizarEstadoHabitacion(habitacion.Estado);
         const imagenUrl = obtenerUrlImagen(habitacion.ImagenHabitacion);
@@ -755,6 +707,9 @@ const renderizarHabitacionesAdmin = () => {
             </tr>
         `;
     }).join('');
+
+    const tablaWrap = contenedor.closest('.crud-habitaciones-tabla-wrap') || contenedor;
+    renderPaginationControls('habitacionesAdmin', tablaWrap, paginacion.totalItems, paginacion.totalPages, paginacion.currentPage, renderizarHabitacionesAdmin);
 };
 
 async function cambiarEstadoHabitacionAdmin(id, nuevoEstado, inputToggle = null) {
@@ -814,7 +769,6 @@ const limpiarFormularioHabitacionAdmin = (mostrarMensaje = true) => {
     const campoCosto = document.getElementById('habitacion-admin-costo');
     const campoEstado = document.getElementById('habitacion-admin-estado');
     const campoImagen = document.getElementById('habitacion-admin-imagen');
-    const campoImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
     const titulo = document.getElementById('habitacion-admin-form-title');
     const botonGuardar = document.getElementById('btn-habitacion-admin-guardar');
 
@@ -825,7 +779,6 @@ const limpiarFormularioHabitacionAdmin = (mostrarMensaje = true) => {
     if (campoCosto) campoCosto.value = '';
     if (campoEstado) campoEstado.value = '1';
     if (campoImagen) campoImagen.value = '';
-    if (campoImagenArchivo) campoImagenArchivo.value = '';
     if (titulo) titulo.textContent = 'Crear habitación';
     if (botonGuardar) botonGuardar.textContent = 'Guardar habitación';
     habitacionAdminImagenArchivoBase64 = '';
@@ -843,10 +796,8 @@ const cargarHabitacionEnFormularioAdmin = (habitacion) => {
     const campoCosto = document.getElementById('habitacion-admin-costo');
     const campoEstado = document.getElementById('habitacion-admin-estado');
     const campoImagen = document.getElementById('habitacion-admin-imagen');
-    const campoImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
     const titulo = document.getElementById('habitacion-admin-form-title');
     const botonGuardar = document.getElementById('btn-habitacion-admin-guardar');
-    const formulario = document.getElementById('form-habitacion-admin');
 
     if (!habitacion) return;
 
@@ -856,17 +807,14 @@ const cargarHabitacionEnFormularioAdmin = (habitacion) => {
     if (campoCosto) campoCosto.value = habitacion.Costo ?? '';
     if (campoEstado) campoEstado.value = normalizarEstadoHabitacion(habitacion.Estado).activo ? '1' : '0';
     if (campoImagen) campoImagen.value = typeof habitacion.ImagenHabitacion === 'string' ? habitacion.ImagenHabitacion : '';
-    if (campoImagenArchivo) campoImagenArchivo.value = '';
     habitacionAdminImagenArchivoBase64 = '';
     mostrarPreviewHabitacionAdmin(campoImagen?.value ? obtenerUrlImagen(campoImagen.value) : '');
     if (titulo) titulo.textContent = `Editar habitación #${obtenerIdHabitacion(habitacion)}`;
     if (botonGuardar) botonGuardar.textContent = 'Actualizar habitación';
 
     mostrarMensajeHabitacionAdmin(`Editando ${habitacion.NombreHabitacion || 'la habitación seleccionada'}.`, 'ok');
-
-    if (formulario) {
-        formulario.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    abrirModalHabitacionAdmin();
+    actualizarValidacionNombreHabitacionAdmin();
 };
 
 async function cargarHabitacionesAdmin() {
@@ -876,6 +824,7 @@ async function cargarHabitacionesAdmin() {
     try {
         mostrarMensajeHabitacionAdmin('Cargando habitaciones...');
         habitacionesAdminCargadas = await obtenerHabitaciones();
+        resetPagination('habitacionesAdmin');
         renderizarHabitacionesAdmin();
         mostrarMensajeHabitacionAdmin(`Se cargaron ${habitacionesAdminCargadas.length} habitaciones.`, 'ok');
     } catch (error) {
@@ -914,6 +863,11 @@ async function guardarHabitacionAdmin(event) {
         return;
     }
 
+    if (existeHabitacionConNombre(nombreHabitacion, idHabitacion)) {
+        mostrarMensajeHabitacionAdmin('Ya existe una habitación con ese nombre. Usa otro nombre para poder guardarla.', 'error');
+        return;
+    }
+
     try {
         if (botonGuardar) botonGuardar.disabled = true;
         mostrarMensajeHabitacionAdmin(idHabitacion ? 'Actualizando habitación...' : 'Creando habitación...');
@@ -931,12 +885,13 @@ async function guardarHabitacionAdmin(event) {
             : await crearHabitacion(payload);
 
         if (!resultado) {
-            throw new Error('No se pudo guardar la habitación');
+            throw new Error(obtenerMensajeErrorGuardado('Ya existe una habitación con ese nombre. Usa otro nombre para poder guardarla.', 'No se pudo guardar la habitación'));
         }
 
         limpiarFormularioHabitacionAdmin(false);
         await cargarHabitacionesAdmin();
         mostrarMensajeHabitacionAdmin(idHabitacion ? 'Habitación actualizada correctamente.' : 'Habitación creada correctamente.', 'ok');
+        cerrarModalHabitacionAdmin();
 
         if (typeof cargarHabitaciones === 'function') {
             await cargarHabitaciones();
@@ -981,8 +936,12 @@ function configurarCRUDHabitaciones() {
     const formulario = document.getElementById('form-habitacion-admin');
     const botonLimpiar = document.getElementById('btn-habitacion-admin-limpiar');
     const botonRecargar = document.getElementById('btn-habitaciones-admin-recargar');
+    const botonNueva = document.getElementById('btn-nueva-habitacion-admin');
+    const botonCerrarModal = document.getElementById('btn-cerrar-modal-habitacion');
+    const modalHabitacion = document.getElementById('modal-habitacion-admin');
     const buscador = document.getElementById('busqueda-habitaciones-admin');
     const filtroEstado = document.getElementById('filtro-estado-habitaciones-admin');
+    const campoNombre = document.getElementById('habitacion-admin-nombre');
     const inputImagenTexto = document.getElementById('habitacion-admin-imagen');
     const inputImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
     const tabla = document.getElementById('habitaciones-admin-tbody');
@@ -1002,13 +961,47 @@ function configurarCRUDHabitaciones() {
         botonRecargar.dataset.crudHabitacionesInicializado = 'true';
     }
 
+    if (botonNueva && !botonNueva.dataset.crudHabitacionesInicializado) {
+        botonNueva.addEventListener('click', () => {
+            limpiarFormularioHabitacionAdmin(false);
+            abrirModalHabitacionAdmin();
+        });
+        botonNueva.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (botonCerrarModal && !botonCerrarModal.dataset.crudHabitacionesInicializado) {
+        botonCerrarModal.addEventListener('click', cerrarModalHabitacionAdmin);
+        botonCerrarModal.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (campoNombre && !campoNombre.dataset.crudHabitacionesInicializado) {
+        campoNombre.addEventListener('input', actualizarValidacionNombreHabitacionAdmin);
+        campoNombre.addEventListener('blur', actualizarValidacionNombreHabitacionAdmin);
+        campoNombre.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (modalHabitacion && !modalHabitacion.dataset.crudHabitacionesInicializado) {
+        modalHabitacion.addEventListener('click', (event) => {
+            if (event.target === modalHabitacion) {
+                cerrarModalHabitacionAdmin();
+            }
+        });
+        modalHabitacion.dataset.crudHabitacionesInicializado = 'true';
+    }
+
     if (buscador && !buscador.dataset.crudHabitacionesInicializado) {
-        buscador.addEventListener('input', renderizarHabitacionesAdmin);
+        buscador.addEventListener('input', () => {
+            resetPagination('habitacionesAdmin');
+            renderizarHabitacionesAdmin();
+        });
         buscador.dataset.crudHabitacionesInicializado = 'true';
     }
 
     if (filtroEstado && !filtroEstado.dataset.crudHabitacionesInicializado) {
-        filtroEstado.addEventListener('change', renderizarHabitacionesAdmin);
+        filtroEstado.addEventListener('change', () => {
+            resetPagination('habitacionesAdmin');
+            renderizarHabitacionesAdmin();
+        });
         filtroEstado.dataset.crudHabitacionesInicializado = 'true';
     }
 
@@ -1024,6 +1017,15 @@ function configurarCRUDHabitaciones() {
     if (inputImagenArchivo && !inputImagenArchivo.dataset.crudHabitacionesInicializado) {
         inputImagenArchivo.addEventListener('change', manejarArchivoHabitacionAdmin);
         inputImagenArchivo.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    if (!document.body.dataset.crudHabitacionesEscapeInicializado) {
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                cerrarModalHabitacionAdmin();
+            }
+        });
+        document.body.dataset.crudHabitacionesEscapeInicializado = 'true';
     }
 
     if (tabla && !tabla.dataset.crudHabitacionesInicializado) {
@@ -1093,16 +1095,8 @@ function cargarSeccion(seccion, event) {
         elementoSeccion.classList.remove('hidden');
         
         // Cargar datos según la sección
-        if (seccion === 'habitaciones') {
-            cargarHabitaciones();
-        } else if (seccion === 'administrar-habitaciones') {
+        if (seccion === 'administrar-habitaciones') {
             cargarHabitacionesAdmin();
-        } else if (seccion === 'clientes') {
-            cargarClientes();
-        } else if (seccion === 'reservas') {
-            cargarReservas();
-        } else if (seccion === 'servicios') {
-            cargarServicios();
         } else if (seccion === 'administrar-servicios') {
             cargarServiciosAdmin();
         }
@@ -1138,26 +1132,52 @@ const formatearCostoServicio = (costo) => {
 };
 
 const mostrarMensajeServicioAdmin = (mensaje, tipo = 'info') => {
-    const elemento = document.getElementById('mensaje-servicio-admin');
-    if (!elemento) return;
+    const elementos = [
+        document.getElementById('mensaje-servicio-admin'),
+        document.getElementById('mensaje-servicio-admin-modal')
+    ].filter(Boolean);
 
-    elemento.textContent = mensaje;
-    elemento.className = 'crud-servicios-mensaje';
-    if (tipo !== 'info') {
-        elemento.classList.add(tipo);
-    }
+    if (!elementos.length) return;
+
+    elementos.forEach((elemento) => {
+        elemento.textContent = mensaje;
+        elemento.className = 'crud-servicios-mensaje';
+        if (tipo !== 'info') {
+            elemento.classList.add(tipo);
+        }
+    });
 
     if (tipo === 'error' || tipo === 'ok') {
         setTimeout(() => {
-            elemento.textContent = '';
-            elemento.className = 'crud-servicios-mensaje';
+            elementos.forEach((elemento) => {
+                elemento.textContent = '';
+                elemento.className = 'crud-servicios-mensaje';
+            });
         }, 3500);
+    }
+};
+
+const abrirModalServicioAdmin = () => {
+    cerrarModalesCRUD();
+    const modal = document.getElementById('modal-servicio-admin');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+};
+
+const cerrarModalServicioAdmin = () => {
+    const modal = document.getElementById('modal-servicio-admin');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    if (document.getElementById('modal-habitacion-admin')?.classList.contains('hidden')) {
+        document.body.classList.remove('modal-open');
     }
 };
 
 async function cargarServiciosAdmin() {
     try {
         serviciosCargados = await obtenerServicios();
+        resetPagination('serviciosAdmin');
         renderizarServiciosAdmin();
     } catch (error) {
         console.error('Error cargando servicios:', error);
@@ -1218,6 +1238,8 @@ const renderizarServiciosAdmin = () => {
 
     const filtros = obtenerFiltrosServiciosAdmin();
     const serviciosFiltrados = serviciosCargados.filter((servicio) => serviciosAdminCoinciden(servicio, filtros));
+    const paginacion = getPaginatedItems(serviciosFiltrados, 'serviciosAdmin');
+    const serviciosVisibles = paginacion.items;
 
     actualizarResumenServiciosAdmin(serviciosCargados);
 
@@ -1227,10 +1249,12 @@ const renderizarServiciosAdmin = () => {
                 <td colspan="7" class="mensaje-vacio">No hay servicios que coincidan con el filtro actual.</td>
             </tr>
         `;
+        const tablaWrapVacio = contenedor.closest('.crud-servicios-tabla-wrap') || contenedor;
+        renderPaginationControls('serviciosAdmin', tablaWrapVacio, 0, 0, 1, renderizarServiciosAdmin);
         return;
     }
 
-    contenedor.innerHTML = serviciosFiltrados.map((servicio) => {
+    contenedor.innerHTML = serviciosVisibles.map((servicio) => {
         const idServicio = obtenerIdServicio(servicio);
         const estado = normalizarEstadoServicio(servicio.Estado);
         const switchId = `switch-servicio-${idServicio}`;
@@ -1269,6 +1293,9 @@ const renderizarServiciosAdmin = () => {
             </tr>
         `;
     }).join('');
+
+    const tablaWrap = contenedor.closest('.crud-servicios-tabla-wrap') || contenedor;
+    renderPaginationControls('serviciosAdmin', tablaWrap, paginacion.totalItems, paginacion.totalPages, paginacion.currentPage, renderizarServiciosAdmin);
 };
 
 async function cambiarEstadoServicioAdmin(id, nuevoEstado, inputToggle = null) {
@@ -1371,6 +1398,8 @@ const cargarServicioEnFormularioAdmin = (servicio) => {
     if (botonGuardar) botonGuardar.textContent = 'Actualizar servicio';
 
     mostrarMensajeServicioAdmin('Servicio cargado en el formulario. Modifica los campos y guarda los cambios.');
+    abrirModalServicioAdmin();
+    actualizarValidacionNombreServicioAdmin();
 };
 
 async function guardarServicioAdmin(evento) {
@@ -1397,6 +1426,11 @@ async function guardarServicioAdmin(evento) {
         return;
     }
 
+    if (existeServicioConNombre(nombre, id)) {
+        mostrarMensajeServicioAdmin('Ya existe un servicio con ese nombre. Usa otro nombre para poder guardarlo.', 'error');
+        return;
+    }
+
     const payload = {
         NombreServicio: nombre,
         Descripcion: descripcion,
@@ -1418,13 +1452,14 @@ async function guardarServicioAdmin(evento) {
             // Crear
             const resultado = await crearServicio(payload);
             if (!resultado) {
-                throw new Error('No se pudo crear el servicio');
+                throw new Error(obtenerMensajeErrorGuardado('Ya existe un servicio con ese nombre. Usa otro nombre para poder guardarlo.', 'No se pudo crear el servicio'));
             }
             mostrarMensajeServicioAdmin(`Servicio "${nombre}" creado correctamente.`, 'ok');
         }
 
         limpiarFormularioServicioAdmin(false);
         await cargarServiciosAdmin();
+        cerrarModalServicioAdmin();
     } catch (error) {
         console.error('Error al guardar servicio:', error);
         mostrarMensajeServicioAdmin(error.message || 'No se pudo guardar el servicio', 'error');
@@ -1460,8 +1495,12 @@ const inicializarFormularioServiciosAdmin = () => {
     const formulario = document.getElementById('form-servicio-admin');
     const botonLimpiar = document.getElementById('btn-servicio-admin-limpiar');
     const botonRecargar = document.getElementById('btn-servicios-admin-recargar');
+    const botonNuevo = document.getElementById('btn-nuevo-servicio-admin');
+    const botonCerrarModal = document.getElementById('btn-cerrar-modal-servicio');
+    const modalServicio = document.getElementById('modal-servicio-admin');
     const buscador = document.getElementById('busqueda-servicios-admin');
     const filtroEstado = document.getElementById('filtro-estado-servicios-admin');
+    const campoNombre = document.getElementById('servicio-admin-nombre');
     const tabla = document.getElementById('servicios-admin-tbody')?.closest('table');
 
     if (formulario && !formulario.dataset.serviciosAdminInicializado) {
@@ -1479,13 +1518,56 @@ const inicializarFormularioServiciosAdmin = () => {
         botonRecargar.dataset.serviciosAdminInicializado = 'true';
     }
 
+    if (botonNuevo && !botonNuevo.dataset.serviciosAdminInicializado) {
+        botonNuevo.addEventListener('click', () => {
+            limpiarFormularioServicioAdmin(false);
+            abrirModalServicioAdmin();
+        });
+        botonNuevo.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (botonCerrarModal && !botonCerrarModal.dataset.serviciosAdminInicializado) {
+        botonCerrarModal.addEventListener('click', cerrarModalServicioAdmin);
+        botonCerrarModal.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (campoNombre && !campoNombre.dataset.serviciosAdminInicializado) {
+        campoNombre.addEventListener('input', actualizarValidacionNombreServicioAdmin);
+        campoNombre.addEventListener('blur', actualizarValidacionNombreServicioAdmin);
+        campoNombre.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (modalServicio && !modalServicio.dataset.serviciosAdminInicializado) {
+        modalServicio.addEventListener('click', (event) => {
+            if (event.target === modalServicio) {
+                cerrarModalServicioAdmin();
+            }
+        });
+        modalServicio.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    if (!document.body.dataset.serviciosAdminEscapeInicializado) {
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                cerrarModalServicioAdmin();
+            }
+        });
+        document.body.dataset.serviciosAdminEscapeInicializado = 'true';
+    }
+
     if (buscador && !buscador.dataset.serviciosAdminInicializado) {
-        buscador.addEventListener('input', renderizarServiciosAdmin);
+        buscador.addEventListener('input', () => {
+            resetPagination('serviciosAdmin');
+            renderizarServiciosAdmin();
+        });
         buscador.dataset.serviciosAdminInicializado = 'true';
     }
 
     if (filtroEstado && !filtroEstado.dataset.serviciosAdminInicializado) {
-        filtroEstado.addEventListener('change', renderizarServiciosAdmin);
+        filtroEstado.addEventListener('change', () => {
+            resetPagination('serviciosAdmin');
+            renderizarServiciosAdmin();
+        });
         filtroEstado.dataset.serviciosAdminInicializado = 'true';
     }
 
@@ -1530,15 +1612,22 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Página cargada, conectando con backend...');
     console.log('Backend URL:', 'http://localhost:3000/api');
     configurarModoContraste();
+
+    if (window.location.hash === '#seccion-administrar-habitaciones' || window.location.hash === '#seccion-administrar-servicios') {
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 0);
+        }
+    }
     
     // Cargar datos según la página actual
     if (document.getElementById('habitaciones')) {
         cargarHabitaciones();
     }
     
-    if (document.getElementById('clientes')) {
-        cargarClientes();
-    }
+
     
     if (document.getElementById('reservas')) {
         cargarReservas();
@@ -1546,171 +1635,32 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Inicializar CRUD de habitaciones y servicios
     if (document.getElementById('form-habitacion-admin')) {
-        inicializarFormularioHabitacionesAdmin();
+        configurarCRUDHabitaciones();
     }
     
     if (document.getElementById('form-servicio-admin')) {
         inicializarFormularioServiciosAdmin();
     }
     
-    if (document.getElementById('servicios')) {
-        cargarServicios();
-    }
-
     if (document.getElementById('habitaciones-admin-tbody')) {
         configurarCRUDHabitaciones();
         cargarHabitacionesAdmin();
     }
     
-    // Configurar formulario de registro de clientes
-    configurarFormularioRegistroCliente();
-    
-    // Configurar formulario de editar cliente (si existe)
-    if (typeof configurarFormularioEditarCliente === 'function') {
-        configurarFormularioEditarCliente();
-    }
 
-    configurarBusquedaReservas();
 
-    if (document.getElementById('estado-buscar-reservas')) {
-        cargarEstadosReserva();
-    }
+
 });
 
-// ============================================
-// FUNCIONES EDITAR/ELIMINAR CLIENTES
-// ============================================
 
-// Variable para almacenar el ID del cliente que se está editando
-let clienteEditandoId = null;
 
-// Función para abrir el modal de edición de cliente
-function abrirModalEditarCliente(cliente) {
-    clienteEditandoId = cliente.IDCliente;
-    
-    // Llenar el formulario con los datos del cliente
-    document.getElementById('edit-cliente-id').value = cliente.IDCliente;
-    document.getElementById('edit-cliente-nombre').value = cliente.NombreCliente || '';
-    document.getElementById('edit-cliente-email').value = cliente.EmailCliente || '';
-    document.getElementById('edit-cliente-telefono').value = cliente.TelefonoCliente || '';
-    
-    // Mostrar el modal
-    document.getElementById('modal-editar-cliente').style.display = 'flex';
-}
 
-// Función para cerrar el modal de edición
-function cerrarModalEditarCliente() {
-    document.getElementById('modal-editar-cliente').style.display = 'none';
-    clienteEditandoId = null;
-}
-
-// Función para guardar los cambios del cliente editado
-async function guardarClienteEditado(e) {
-    e.preventDefault();
-    
-    // Obtener los valores del formulario
-    const id = document.getElementById('edit-cliente-id').value;
-    const nombre = document.getElementById('edit-cliente-nombre').value;
-    const email = document.getElementById('edit-cliente-email').value;
-    const telefono = document.getElementById('edit-cliente-telefono').value;
-    const mensajeDiv = document.getElementById('mensaje-editar-cliente');
-    
-    // Validar campos requeridos
-    if (!nombre || !email) {
-        mensajeDiv.textContent = 'Por favor completa los campos requeridos';
-        mensajeDiv.className = 'mensaje-editar error';
-        return;
-    }
-    
-    try {
-        // Actualizar el cliente
-        const res = await actualizarCliente(id, {
-            NombreCliente: nombre,
-            EmailCliente: email,
-            TelefonoCliente: telefono
-        });
-        
-        if (res) {
-            // Mostrar mensaje de éxito
-            mensajeDiv.textContent = 'Cliente actualizado exitosamente';
-            mensajeDiv.className = 'mensaje-editar exito';
-            
-            // Cerrar modal y recargar datos después de 1.5 segundos
-            setTimeout(() => {
-                cerrarModalEditarCliente();
-                mensajeDiv.textContent = '';
-                mensajeDiv.className = 'mensaje-editar';
-                cargarClientes();
-            }, 1500);
-        } else {
-            throw new Error('No se pudo actualizar el cliente');
-        }
-    } catch (err) {
-        console.error('Error al actualizar cliente:', err);
-        mensajeDiv.textContent = 'Error al actualizar cliente';
-        mensajeDiv.className = 'mensaje-editar error';
-    }
-}
-
-// Función para eliminar un cliente
-async function eliminarClienteUI(id) {
-    // Confirmar antes de eliminar
-    if (!confirm('¿Está seguro de que desea eliminar este cliente?')) {
-        return;
-    }
-    
-    try {
-        const res = await eliminarCliente(id);
-        
-        if (res) {
-            alert('Cliente eliminado exitosamente');
-            cargarClientes();
-        } else {
-            throw new Error('No se pudo eliminar el cliente');
-        }
-    } catch (err) {
-        console.error('Error al eliminar cliente:', err);
-        alert('Error al eliminar el cliente');
-    }
-}
-
-// Función para eliminar una reserva
-async function eliminarReservaUI(id) {
-    // Confirmar antes de eliminar
-    if (!confirm('¿Está seguro de que desea eliminar esta reserva? Esta acción no se puede deshacer.')) {
-        return;
-    }
-
-    try {
-        console.log('Eliminando reserva con ID:', id);
-        const res = await eliminarReserva(id);
-        console.log('Resultado de eliminarReserva:', res);
-
-        // Verificar si la eliminación fue exitosa
-        // Para datos mock: { success: true }
-        // Para API real: cualquier respuesta sin error
-        if (res && (res.success === true || res.success !== false)) {
-            alert('Reserva eliminada exitosamente');
-            console.log('Recargando reservas...');
-            await cargarReservas();
-            console.log('Reservas recargadas');
-        } else {
-            console.error('Respuesta inesperada:', res);
-            throw new Error('La eliminación no se completó correctamente');
-        }
-    } catch (err) {
-        console.error('Error al eliminar reserva:', err);
-        alert('Error al eliminar la reserva: ' + err.message);
-    }
-}
 
 // ============================================
 // FUNCIONES GLOBALES PARA EVENTOS ONCLICK
 // ============================================
 
 // Hacer funciones disponibles globalmente para los eventos onclick
-window.eliminarClienteUI = eliminarClienteUI;
-window.eliminarReservaUI = eliminarReservaUI;
 window.cargarHabitacionesAdmin = cargarHabitacionesAdmin;
 window.guardarHabitacionAdmin = guardarHabitacionAdmin;
 window.eliminarHabitacionAdmin = eliminarHabitacionAdmin;

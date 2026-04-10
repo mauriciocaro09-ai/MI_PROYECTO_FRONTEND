@@ -10,20 +10,6 @@ const ESTADOS_HABITACION = {
     RESERVADA: 'reservada'
 };
 
-// Estados de reservas
-const ESTADOS_RESERVA = {
-    PENDIENTE: 'pendiente',
-    CONFIRMADA: 'confirmada',
-    CANCELADA: 'cancelada',
-    COMPLETADA: 'completada'
-};
-
-// Estados de clientes
-const ESTADOS_CLIENTE = {
-    ACTIVO: 'activo',
-    INACTIVO: 'inactivo'
-};
-
 // Tipos de documento
 const TIPOS_DOCUMENTO = {
     CC: 'Cédula de Ciudadanía',
@@ -71,8 +57,6 @@ const FORMATOS_FECHA = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         ESTADOS_HABITACION,
-        ESTADOS_RESERVA,
-        ESTADOS_CLIENTE,
         TIPOS_DOCUMENTO,
         METODOS_PAGO,
         MENSAJES,
