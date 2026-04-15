@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
     <!-- ============================================
@@ -29,13 +30,13 @@
             <ul>
                 <li>
                     <a href="#" onclick="cargarSeccion('administrar-habitaciones', event)">
-                        <span class="icon">🛏️</span>
+                        <span class="icon"><i class="fa-solid fa-bed" aria-hidden="true"></i></span>
                         <span class="text">Administrar habitaciones</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" onclick="cargarSeccion('administrar-servicios', event)">
-                        <span class="icon">☕</span>
+                        <span class="icon"><i class="fa-solid" aria-hidden="true">&#xf7b6;</i></span>
                         <span class="text">Administrar servicios</span>
                     </a>
                 </li>
@@ -56,7 +57,7 @@
         <!-- Header y Navegación -->
         <header>
             <nav>
-                <h1><img src="assets/images/cabana.svg" alt="Cabaña" class="header-brand-icon"> Hospedaje Digital</h1>
+                <h1><i class="fa-solid fa-hotel" aria-hidden="true"></i> Hospedaje Digital</h1>
                 <ul>
                     <li><a href="index.html">Inicio</a></li>
                     <li><a href="pages/nosotros.html">Nosotros</a></li>
@@ -173,8 +174,9 @@
                         </label>
 
                         <label>
-                            Imagen
-                            <input type="text" id="habitacion-admin-imagen" placeholder="URL o valor guardado en BD">
+                            Imágenes por URL
+                            <textarea id="habitacion-admin-imagen" placeholder="Pega una o varias URL separadas por salto de línea o coma"></textarea>
+                            <small class="crud-habitaciones-help">Pega una o varias URLs para armar la galería del detalle.</small>
                         </label>
 
                         <div id="habitacion-admin-preview-wrap" class="crud-habitaciones-preview hidden">
@@ -302,6 +304,14 @@
                             <button type="button" class="btn-accion-crud btn-accion-secundaria" id="btn-servicio-admin-limpiar">Limpiar formulario</button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <div id="modal-detalle-admin" class="crud-modal hidden" role="dialog" aria-modal="true" aria-labelledby="detalle-admin-titulo">
+                <div class="crud-modal-content crud-detalle-modal-content">
+                    <button type="button" class="crud-modal-close" id="btn-cerrar-modal-detalle" aria-label="Cerrar detalle">&times;</button>
+                    <h4 id="detalle-admin-titulo">Detalle</h4>
+                    <div id="detalle-admin-contenido" class="detalle-admin-contenido"></div>
                 </div>
             </div>
 

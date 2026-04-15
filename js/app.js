@@ -3,7 +3,6 @@
 // ============================================
 
 let habitacionesAdminCargadas = [];
-let habitacionAdminImagenArchivoBase64 = '';
 let serviciosCargados = [];
 let lastShownApiError = null;
 
@@ -215,8 +214,7 @@ function mostrarHabitaciones(habitaciones) {
     habitacionesVisibles.forEach(habitacion => {
         const card = document.createElement('div');
         card.className = 'habitacion-card';
-        // Usar la función para obtener la URL correcta
-        const imagenUrl = obtenerUrlImagen(habitacion.ImagenHabitacion);
+        const imagenUrl = obtenerImagenPrincipalHabitacion(habitacion);
         const estadoInfo = normalizarEstadoHabitacion(habitacion.Estado);
         card.innerHTML = `
             <div class="habitacion-imagen">
@@ -278,11 +276,19 @@ function mostrarServicios(servicios) {
 
 async function cargarHabitaciones() {
     console.log('Cargando habitaciones...');
-    const habitaciones = await obtenerHabitaciones();
-    console.log('Habitaciones obtenidas:', habitaciones);
-    notificarErrorBackend('No se pudieron cargar habitaciones');
-    resetPagination('habitaciones');
-    mostrarHabitaciones(habitaciones);
+    try {
+        const habitaciones = await obtenerHabitaciones();
+        console.log('Habitaciones obtenidas:', habitaciones);
+        resetPagination('habitaciones');
+        mostrarHabitaciones(habitaciones);
+        return habitaciones;
+    } catch (error) {
+        console.error('Error al cargar habitaciones:', error);
+        notificarErrorBackend('No se pudieron cargar habitaciones');
+        resetPagination('habitaciones');
+        mostrarHabitaciones([]);
+        return [];
+    }
 }
 
 
@@ -334,6 +340,318 @@ const escaparHtml = (valor) => String(valor ?? '')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+const obtenerIconoAccion = (tipo) => {
+    const iconos = {
+        ver: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5c5.5 0 9.9 4.1 11 7-1.1 2.9-5.5 7-11 7S2.1 14.9 1 12c1.1-2.9 5.5-7 11-7Zm0 2C7.9 7 4.4 9.7 3.2 12 4.4 14.3 7.9 17 12 17s7.6-2.7 8.8-5C19.6 9.7 16.1 7 12 7Zm0 1.5A3.5 3.5 0 1 1 12 16a3.5 3.5 0 0 1 0-7Zm0 2A1.5 1.5 0 1 0 12 13a1.5 1.5 0 0 0 0-3Z"/></svg>',
+        editar: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 17.3V21h3.7L17.9 9.8l-3.7-3.7L3 17.3Zm18-10.6a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7 1.8-1.8Z"/></svg>',
+        eliminar: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM6 7h12l-1 14H7L6 7Z"/></svg>'
+    };
+
+    return iconos[tipo] || '';
+};
+
+const obtenerBotonIcono = (accion, claseExtra, titulo, ariaLabel, atributoAccion, idRegistro) => `
+    <button type="button" class="btn-mini btn-mini-icon ${claseExtra}" ${atributoAccion ? `data-${atributoAccion}="${accion}"` : ''} ${idRegistro ? `data-id="${escaparHtml(idRegistro)}"` : ''} title="${escaparHtml(titulo)}" aria-label="${escaparHtml(ariaLabel)}">
+        ${obtenerIconoAccion(accion)}
+    </button>
+`;
+
+const obtenerEstadoTextoHabitacion = (estado) => normalizarEstadoHabitacion(estado).texto;
+
+const obtenerEstadoTextoServicio = (estado) => normalizarEstadoServicio(estado).texto;
+
+const obtenerClaseEstadoServicio = (estado) => normalizarEstadoServicio(estado).clase;
+
+const abrirDetalleAdmin = ({ titulo, contenido, tipo }) => {
+    const modal = document.getElementById('modal-detalle-admin');
+    const modalTitulo = document.getElementById('detalle-admin-titulo');
+    const modalContenido = document.getElementById('detalle-admin-contenido');
+
+    if (!modal || !modalTitulo || !modalContenido) return;
+
+    cerrarModalesCRUD();
+    modalTitulo.textContent = titulo;
+    modalContenido.innerHTML = contenido;
+    modal.dataset.detalleTipo = tipo || '';
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+};
+
+const cerrarDetalleAdmin = () => {
+    const modal = document.getElementById('modal-detalle-admin');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.dataset.detalleTipo = '';
+    document.body.classList.remove('modal-open');
+};
+
+const renderDetalleItem = (etiqueta, valor) => `
+    <div class="detalle-admin-item">
+        <span>${escaparHtml(etiqueta)}</span>
+        <strong>${valor || 'Sin dato'}</strong>
+    </div>
+`;
+
+const renderDetalleCabecera = (tipo, titulo, estadoTexto, estadoClase, descripcion) => `
+    <div class="detalle-admin-header">
+        <div class="detalle-admin-header-copy">
+            <span class="detalle-admin-kicker">${escaparHtml(tipo)}</span>
+            <h4>${escaparHtml(titulo)}</h4>
+            <p>${escaparHtml(descripcion)}</p>
+        </div>
+        <span class="detalle-estado ${escaparHtml(estadoClase)}">${escaparHtml(estadoTexto)}</span>
+    </div>
+`;
+
+const obtenerImagenesDetalleHabitacion = (valor) => {
+    if (!valor) return [];
+
+    if (Array.isArray(valor)) {
+        return valor.map((item) => String(item || '').trim()).filter(Boolean);
+    }
+
+    if (valor && valor.type === 'Buffer' && Array.isArray(valor.data)) {
+        try {
+            let textoBuffer = '';
+            for (let i = 0; i < valor.data.length; i += 1) {
+                textoBuffer += String.fromCharCode(valor.data[i]);
+            }
+            valor = textoBuffer;
+        } catch (error) {
+            console.warn('No se pudo convertir la imagen del detalle a string:', error);
+            return [];
+        }
+    }
+
+    const texto = String(valor).trim();
+    if (!texto) return [];
+
+    try {
+        if (texto.startsWith('[') || texto.startsWith('{')) {
+            const parsed = JSON.parse(texto);
+            if (Array.isArray(parsed)) {
+                return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+            }
+        }
+    } catch {
+        // Si no es JSON válido, seguimos con la extracción por patrón.
+    }
+
+    const coincidencias = texto.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+|https?:\/\/[^\s"'<>]+|(?:\.\.\/|\.\/|\/)[^\s"'<>]+/g);
+    if (coincidencias && coincidencias.length > 0) {
+        return coincidencias.map((item) => item.trim()).filter(Boolean);
+    }
+
+    return [texto];
+};
+
+const obtenerImagenesHabitacionFormulario = () => {
+    const campoImagen = document.getElementById('habitacion-admin-imagen');
+    const imagenesTexto = obtenerImagenesDetalleHabitacion(campoImagen?.value || '');
+
+    const imagenes = [];
+    const vistos = new Set();
+
+    imagenesTexto.forEach((imagen) => {
+        const normalizada = String(imagen || '').trim();
+        if (!normalizada) return;
+
+        const clave = normalizada.toLowerCase();
+        if (vistos.has(clave)) return;
+
+        vistos.add(clave);
+        imagenes.push(normalizada);
+    });
+
+    return imagenes;
+};
+
+const serializarImagenesHabitacion = (imagenes) => {
+    const lista = Array.isArray(imagenes)
+        ? imagenes.map((imagen) => String(imagen || '').trim()).filter(Boolean)
+        : [];
+
+    if (lista.length === 0) {
+        return null;
+    }
+
+    if (lista.length === 1) {
+        return lista[0];
+    }
+
+    return JSON.stringify(lista);
+};
+
+const obtenerImagenesHabitacionDetalle = (habitacion) => {
+    const candidatos = [
+        habitacion?.ImagenesHabitacion,
+        habitacion?.GaleriaHabitacion,
+        habitacion?.FotosHabitacion,
+        habitacion?.Fotos,
+        habitacion?.ImagenHabitacion
+    ].filter((item) => item !== undefined && item !== null && item !== '');
+
+    const imagenes = [];
+
+    candidatos.forEach((valor) => {
+        if (Array.isArray(valor)) {
+            valor.forEach((item) => {
+                const texto = String(item || '').trim();
+                if (texto) imagenes.push(texto);
+            });
+            return;
+        }
+
+        if (typeof valor === 'string') {
+            const texto = valor.trim();
+            if (!texto) return;
+
+            if (texto.startsWith('[')) {
+                try {
+                    const parsed = JSON.parse(texto);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach((item) => {
+                            const itemTexto = String(item || '').trim();
+                            if (itemTexto) imagenes.push(itemTexto);
+                        });
+                        return;
+                    }
+                } catch {
+                    // Si no es JSON válido, continúa con el texto crudo.
+                }
+            }
+
+            const separadas = obtenerImagenesDetalleHabitacion(texto);
+            if (separadas.length > 0) {
+                imagenes.push(...separadas);
+            }
+            return;
+        }
+
+        const separadas = obtenerImagenesDetalleHabitacion(valor);
+        if (separadas.length > 0) {
+            imagenes.push(...separadas);
+        }
+    });
+
+    const unicas = [];
+    const vistos = new Set();
+
+    imagenes.forEach((imagen) => {
+        const normalizada = String(imagen || '').trim();
+        if (!normalizada) return;
+        const clave = normalizada.toLowerCase();
+        if (vistos.has(clave)) return;
+        vistos.add(clave);
+        unicas.push(normalizada);
+    });
+
+    return unicas;
+};
+
+const obtenerImagenPrincipalHabitacion = (habitacion) => {
+    const imagenes = obtenerImagenesDetalleHabitacion(habitacion?.ImagenHabitacion);
+    return obtenerUrlImagen(imagenes[0] || habitacion?.ImagenHabitacion);
+};
+
+const renderGaleriaHabitacionDetalle = (imagenes, nombre) => {
+    const lista = Array.isArray(imagenes) ? imagenes.filter(Boolean) : [];
+
+    if (lista.length === 0) {
+        return `
+            <figure class="detalle-admin-figure detalle-admin-figure-empty">
+                <img src="assets/images/default.svg" alt="${escaparHtml(nombre || 'Habitación')}">
+            </figure>
+        `;
+    }
+
+    const principal = lista[0];
+    const miniaturas = lista.slice(1);
+
+    return `
+        <div class="detalle-admin-gallery">
+            <figure class="detalle-admin-figure detalle-admin-figure-main">
+                <img src="${escaparHtml(principal)}" alt="${escaparHtml(nombre || 'Habitación')}" onerror="this.src='assets/images/default.svg'">
+            </figure>
+            ${miniaturas.length > 0 ? `
+                <div class="detalle-admin-thumbs">
+                    ${miniaturas.map((imagen, indice) => `
+                        <figure class="detalle-admin-thumb">
+                            <img src="${escaparHtml(imagen)}" alt="${escaparHtml(nombre || 'Habitación')} ${indice + 2}" onerror="this.src='assets/images/default.svg'">
+                        </figure>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+};
+
+const abrirDetalleHabitacionAdmin = (habitacion) => {
+    if (!habitacion) return;
+
+    const imagenes = obtenerImagenesHabitacionDetalle(habitacion).map((imagen) => obtenerUrlImagen(imagen));
+    const estadoHabitacion = normalizarEstadoHabitacion(habitacion.Estado);
+    const totalImagenes = imagenes.length;
+    const contenido = `
+        ${renderDetalleCabecera(
+            'Habitación',
+            habitacion.NombreHabitacion || 'Sin nombre',
+            estadoHabitacion.texto,
+            estadoHabitacion.clase,
+            'Información completa del registro seleccionado.'
+        )}
+        <div class="detalle-admin-grid detalle-admin-grid-habitacion">
+            ${renderGaleriaHabitacionDetalle(imagenes, habitacion.NombreHabitacion)}
+            <div class="detalle-admin-body">
+                ${renderDetalleItem('ID', escaparHtml(obtenerIdHabitacion(habitacion)))}
+                ${renderDetalleItem('Nombre', escaparHtml(habitacion.NombreHabitacion || 'Sin nombre'))}
+                ${renderDetalleItem('Descripción', escaparHtml(habitacion.Descripcion || 'Sin descripción'))}
+                ${renderDetalleItem('Costo', escaparHtml(formatearCostoHabitacion(habitacion.Costo)))}
+                ${renderDetalleItem('Estado', `<span class="detalle-estado ${estadoHabitacion.clase}">${escaparHtml(estadoHabitacion.texto)}</span>`)}
+                ${renderDetalleItem('Imágenes', `<span class="detalle-admin-code">${escaparHtml(totalImagenes > 0 ? `${totalImagenes} imagen${totalImagenes === 1 ? '' : 'es'} cargada${totalImagenes === 1 ? '' : 's'}` : 'Sin imagen')}</span>`)}
+            </div>
+        </div>
+    `;
+
+    abrirDetalleAdmin({
+        titulo: `Detalle de habitación #${obtenerIdHabitacion(habitacion)}`,
+        contenido,
+        tipo: 'habitacion'
+    });
+};
+
+const abrirDetalleServicioAdmin = (servicio) => {
+    if (!servicio) return;
+
+    const estadoServicio = normalizarEstadoServicio(servicio.Estado);
+
+    const contenido = `
+        ${renderDetalleCabecera(
+            'Servicio',
+            servicio.NombreServicio || 'Sin nombre',
+            estadoServicio.texto,
+            estadoServicio.clase,
+            'Información completa del servicio seleccionado.'
+        )}
+        <div class="detalle-admin-grid detalle-admin-grid-servicio">
+            <div class="detalle-admin-body detalle-admin-body-full">
+                ${renderDetalleItem('ID', escaparHtml(obtenerIdServicio(servicio)))}
+                ${renderDetalleItem('Nombre', escaparHtml(servicio.NombreServicio || 'Sin nombre'))}
+                ${renderDetalleItem('Descripción', escaparHtml(servicio.Descripcion || 'Sin descripción'))}
+                ${renderDetalleItem('Duración', escaparHtml(servicio.Duracion ? `${servicio.Duracion} min` : 'Sin duración'))}
+                ${renderDetalleItem('Personas', escaparHtml(servicio.CantidadMaximaPersonas || 'Sin dato'))}
+                ${renderDetalleItem('Costo', escaparHtml(formatearCostoServicio(servicio.Costo)))}
+                ${renderDetalleItem('Estado', `<span class="detalle-estado ${estadoServicio.clase}">${escaparHtml(estadoServicio.texto)}</span>`)}
+            </div>
+        </div>
+    `;
+
+    abrirDetalleAdmin({
+        titulo: `Detalle de servicio #${obtenerIdServicio(servicio)}`,
+        contenido,
+        tipo: 'servicio'
+    });
+};
 
 const obtenerImagenParaPayload = (habitacion) => {
     const valor = habitacion?.ImagenHabitacion;
@@ -369,11 +687,23 @@ const mostrarMensajeHabitacionAdmin = (texto, tipo = 'info') => {
     mensajes.forEach((mensaje) => {
         mensaje.textContent = texto || '';
         mensaje.className = 'crud-habitaciones-mensaje';
+        mensaje.style.color = '';
+        mensaje.style.background = '';
+        mensaje.style.border = '';
+        mensaje.style.fontWeight = '';
 
         if (tipo === 'ok') {
             mensaje.classList.add('exito');
         } else if (tipo === 'error') {
             mensaje.classList.add('error');
+        }
+
+        if (tipo === 'ok' || tipo === 'exito') {
+            mensaje.style.setProperty('color', '#14532d', 'important');
+            mensaje.style.setProperty('background', 'rgba(20, 83, 45, 0.16)', 'important');
+            mensaje.style.setProperty('border', '1px solid rgba(20, 83, 45, 0.45)', 'important');
+            mensaje.style.setProperty('font-weight', '700', 'important');
+            mensaje.classList.add('exito');
         }
     });
 };
@@ -515,51 +845,6 @@ const mostrarPreviewHabitacionAdmin = (src) => {
     wrap.classList.remove('hidden');
 };
 
-const leerArchivoComoDataUrl = (archivo) => {
-    return new Promise((resolve, reject) => {
-        const lector = new FileReader();
-        lector.onload = () => resolve(String(lector.result || ''));
-        lector.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado'));
-        lector.readAsDataURL(archivo);
-    });
-};
-
-async function manejarArchivoHabitacionAdmin(event) {
-    const archivo = event?.target?.files?.[0];
-
-    if (!archivo) {
-        habitacionAdminImagenArchivoBase64 = '';
-        const imagenTexto = document.getElementById('habitacion-admin-imagen')?.value?.trim();
-        if (imagenTexto) {
-            mostrarPreviewHabitacionAdmin(obtenerUrlImagen(imagenTexto));
-        } else {
-            mostrarPreviewHabitacionAdmin('');
-        }
-        return;
-    }
-
-    const tamanoMaximo = 2 * 1024 * 1024;
-    if (archivo.size > tamanoMaximo) {
-        event.target.value = '';
-        habitacionAdminImagenArchivoBase64 = '';
-        mostrarPreviewHabitacionAdmin('');
-        mostrarMensajeHabitacionAdmin('La imagen supera 2MB. Usa un archivo más liviano.', 'error');
-        return;
-    }
-
-    try {
-        const dataUrl = await leerArchivoComoDataUrl(archivo);
-        habitacionAdminImagenArchivoBase64 = dataUrl;
-        mostrarPreviewHabitacionAdmin(dataUrl);
-        mostrarMensajeHabitacionAdmin('Imagen cargada correctamente. Se usará al guardar.', 'ok');
-    } catch (error) {
-        console.error(error);
-        habitacionAdminImagenArchivoBase64 = '';
-        mostrarPreviewHabitacionAdmin('');
-        mostrarMensajeHabitacionAdmin('No se pudo procesar la imagen seleccionada.', 'error');
-    }
-}
-
 const aplicarModoContraste = (activo) => {
     const body = document.body;
     const boton = document.getElementById('toggle-contraste');
@@ -667,7 +952,7 @@ const renderizarHabitacionesAdmin = () => {
     contenedor.innerHTML = habitacionesVisibles.map((habitacion) => {
         const idHabitacion = obtenerIdHabitacion(habitacion);
         const estado = normalizarEstadoHabitacion(habitacion.Estado);
-        const imagenUrl = obtenerUrlImagen(habitacion.ImagenHabitacion);
+        const imagenUrl = obtenerImagenPrincipalHabitacion(habitacion);
         const switchId = `switch-habitacion-${idHabitacion}`;
 
         return `
@@ -679,7 +964,6 @@ const renderizarHabitacionesAdmin = () => {
                 </td>
                 <td>
                     <div class="crud-habitaciones-nombre">${escaparHtml(habitacion.NombreHabitacion || 'Sin nombre')}</div>
-                    <div class="crud-habitaciones-descripcion">ID: ${escaparHtml(idHabitacion)}</div>
                 </td>
                 <td><strong>${formatearCostoHabitacion(habitacion.Costo)}</strong></td>
                 <td>
@@ -700,8 +984,9 @@ const renderizarHabitacionesAdmin = () => {
                 <td class="crud-habitaciones-descripcion">${escaparHtml(habitacion.Descripcion || 'Sin descripción')}</td>
                 <td>
                     <div class="crud-habitaciones-acciones">
-                        <button type="button" class="btn-mini btn-mini-editar" data-accion-habitacion="editar" data-id="${escaparHtml(idHabitacion)}">Editar</button>
-                        <button type="button" class="btn-mini btn-mini-eliminar" data-accion-habitacion="eliminar" data-id="${escaparHtml(idHabitacion)}">Eliminar</button>
+                        ${obtenerBotonIcono('ver', 'btn-mini-ver', 'Ver detalle', `Ver detalle de ${habitacion.NombreHabitacion || 'habitación'}`, 'accion-habitacion', idHabitacion)}
+                        ${obtenerBotonIcono('editar', 'btn-mini-editar', 'Editar', `Editar ${habitacion.NombreHabitacion || 'habitación'}`, 'accion-habitacion', idHabitacion)}
+                        ${obtenerBotonIcono('eliminar', 'btn-mini-eliminar', 'Eliminar', `Eliminar ${habitacion.NombreHabitacion || 'habitación'}`, 'accion-habitacion', idHabitacion)}
                     </div>
                 </td>
             </tr>
@@ -781,7 +1066,6 @@ const limpiarFormularioHabitacionAdmin = (mostrarMensaje = true) => {
     if (campoImagen) campoImagen.value = '';
     if (titulo) titulo.textContent = 'Crear habitación';
     if (botonGuardar) botonGuardar.textContent = 'Guardar habitación';
-    habitacionAdminImagenArchivoBase64 = '';
     mostrarPreviewHabitacionAdmin('');
 
     if (mostrarMensaje) {
@@ -806,9 +1090,11 @@ const cargarHabitacionEnFormularioAdmin = (habitacion) => {
     if (campoDescripcion) campoDescripcion.value = habitacion.Descripcion || '';
     if (campoCosto) campoCosto.value = habitacion.Costo ?? '';
     if (campoEstado) campoEstado.value = normalizarEstadoHabitacion(habitacion.Estado).activo ? '1' : '0';
-    if (campoImagen) campoImagen.value = typeof habitacion.ImagenHabitacion === 'string' ? habitacion.ImagenHabitacion : '';
-    habitacionAdminImagenArchivoBase64 = '';
-    mostrarPreviewHabitacionAdmin(campoImagen?.value ? obtenerUrlImagen(campoImagen.value) : '');
+    if (campoImagen) {
+        const imagenesExistentes = obtenerImagenesDetalleHabitacion(habitacion.ImagenHabitacion);
+        campoImagen.value = imagenesExistentes.join('\n');
+    }
+    mostrarPreviewHabitacionAdmin(campoImagen?.value ? obtenerUrlImagen(obtenerImagenesDetalleHabitacion(campoImagen.value)[0] || campoImagen.value) : '');
     if (titulo) titulo.textContent = `Editar habitación #${obtenerIdHabitacion(habitacion)}`;
     if (botonGuardar) botonGuardar.textContent = 'Actualizar habitación';
 
@@ -847,7 +1133,6 @@ async function guardarHabitacionAdmin(event) {
     const campoDescripcion = document.getElementById('habitacion-admin-descripcion');
     const campoCosto = document.getElementById('habitacion-admin-costo');
     const campoEstado = document.getElementById('habitacion-admin-estado');
-    const campoImagen = document.getElementById('habitacion-admin-imagen');
     const botonGuardar = document.getElementById('btn-habitacion-admin-guardar');
 
     const idHabitacion = campoId?.value?.trim();
@@ -855,8 +1140,8 @@ async function guardarHabitacionAdmin(event) {
     const descripcion = campoDescripcion?.value?.trim();
     const costo = campoCosto?.value;
     const estado = campoEstado?.value ?? '1';
-    const imagenHabitacion = campoImagen?.value?.trim();
-    const imagenFinal = habitacionAdminImagenArchivoBase64 || imagenHabitacion || null;
+    const imagenesHabitacion = obtenerImagenesHabitacionFormulario();
+    const imagenFinal = serializarImagenesHabitacion(imagenesHabitacion);
 
     if (!nombreHabitacion || !descripcion || !costo) {
         mostrarMensajeHabitacionAdmin('Nombre, descripción y costo son obligatorios.', 'error');
@@ -943,7 +1228,6 @@ function configurarCRUDHabitaciones() {
     const filtroEstado = document.getElementById('filtro-estado-habitaciones-admin');
     const campoNombre = document.getElementById('habitacion-admin-nombre');
     const inputImagenTexto = document.getElementById('habitacion-admin-imagen');
-    const inputImagenArchivo = document.getElementById('habitacion-admin-imagen-archivo');
     const tabla = document.getElementById('habitaciones-admin-tbody');
 
     if (formulario && !formulario.dataset.crudHabitacionesInicializado) {
@@ -1007,16 +1291,12 @@ function configurarCRUDHabitaciones() {
 
     if (inputImagenTexto && !inputImagenTexto.dataset.crudHabitacionesInicializado) {
         inputImagenTexto.addEventListener('input', () => {
-            if (habitacionAdminImagenArchivoBase64) return;
             const valor = inputImagenTexto.value.trim();
-            mostrarPreviewHabitacionAdmin(valor ? obtenerUrlImagen(valor) : '');
+            const vistaPrevia = valor ? obtenerUrlImagen(obtenerImagenesDetalleHabitacion(valor)[0] || valor) : '';
+
+            mostrarPreviewHabitacionAdmin(vistaPrevia);
         });
         inputImagenTexto.dataset.crudHabitacionesInicializado = 'true';
-    }
-
-    if (inputImagenArchivo && !inputImagenArchivo.dataset.crudHabitacionesInicializado) {
-        inputImagenArchivo.addEventListener('change', manejarArchivoHabitacionAdmin);
-        inputImagenArchivo.dataset.crudHabitacionesInicializado = 'true';
     }
 
     if (!document.body.dataset.crudHabitacionesEscapeInicializado) {
@@ -1044,6 +1324,14 @@ function configurarCRUDHabitaciones() {
                 return;
             }
 
+            if (accion === 'ver') {
+                const habitacion = habitacionesAdminCargadas.find((item) => String(obtenerIdHabitacion(item)) === String(id));
+                if (habitacion) {
+                    abrirDetalleHabitacionAdmin(habitacion);
+                }
+                return;
+            }
+
             if (accion === 'eliminar') {
                 eliminarHabitacionAdmin(id);
             }
@@ -1059,6 +1347,23 @@ function configurarCRUDHabitaciones() {
         });
 
         tabla.dataset.crudHabitacionesInicializado = 'true';
+    }
+
+    const detalleModal = document.getElementById('modal-detalle-admin');
+    const cerrarDetalle = document.getElementById('btn-cerrar-modal-detalle');
+
+    if (detalleModal && !detalleModal.dataset.detalleInicializado) {
+        detalleModal.addEventListener('click', (event) => {
+            if (event.target === detalleModal) {
+                cerrarDetalleAdmin();
+            }
+        });
+        detalleModal.dataset.detalleInicializado = 'true';
+    }
+
+    if (cerrarDetalle && !cerrarDetalle.dataset.detalleInicializado) {
+        cerrarDetalle.addEventListener('click', cerrarDetalleAdmin);
+        cerrarDetalle.dataset.detalleInicializado = 'true';
     }
 }
 
@@ -1142,19 +1447,23 @@ const mostrarMensajeServicioAdmin = (mensaje, tipo = 'info') => {
     elementos.forEach((elemento) => {
         elemento.textContent = mensaje;
         elemento.className = 'crud-servicios-mensaje';
+        elemento.style.color = '';
+        elemento.style.background = '';
+        elemento.style.border = '';
+        elemento.style.fontWeight = '';
+
         if (tipo !== 'info') {
             elemento.classList.add(tipo);
         }
-    });
 
-    if (tipo === 'error' || tipo === 'ok') {
-        setTimeout(() => {
-            elementos.forEach((elemento) => {
-                elemento.textContent = '';
-                elemento.className = 'crud-servicios-mensaje';
-            });
-        }, 3500);
-    }
+        if (tipo === 'ok' || tipo === 'exito') {
+            elemento.style.setProperty('color', '#14532d', 'important');
+            elemento.style.setProperty('background', 'rgba(20, 83, 45, 0.16)', 'important');
+            elemento.style.setProperty('border', '1px solid rgba(20, 83, 45, 0.45)', 'important');
+            elemento.style.setProperty('font-weight', '700', 'important');
+            elemento.classList.add('exito');
+        }
+    });
 };
 
 const abrirModalServicioAdmin = () => {
@@ -1263,7 +1572,6 @@ const renderizarServiciosAdmin = () => {
             <tr>
                 <td>
                     <div class="crud-servicios-nombre">${escaparHtml(servicio.NombreServicio || 'Sin nombre')}</div>
-                    <div class="crud-servicios-descripcion">ID: ${escaparHtml(idServicio)}</div>
                 </td>
                 <td><strong>${servicio.Duracion || '—'}</strong></td>
                 <td>${servicio.CantidadMaximaPersonas || '—'}</td>
@@ -1286,8 +1594,9 @@ const renderizarServiciosAdmin = () => {
                 <td class="crud-servicios-descripcion">${escaparHtml(servicio.Descripcion || 'Sin descripción')}</td>
                 <td>
                     <div class="crud-servicios-acciones">
-                        <button type="button" class="btn-mini btn-mini-editar" data-accion-servicio="editar" data-id="${escaparHtml(idServicio)}">Editar</button>
-                        <button type="button" class="btn-mini btn-mini-eliminar" data-accion-servicio="eliminar" data-id="${escaparHtml(idServicio)}">Eliminar</button>
+                        ${obtenerBotonIcono('ver', 'btn-mini-ver', 'Ver detalle', `Ver detalle de ${servicio.NombreServicio || 'servicio'}`, 'accion-servicio', idServicio)}
+                        ${obtenerBotonIcono('editar', 'btn-mini-editar', 'Editar', `Editar ${servicio.NombreServicio || 'servicio'}`, 'accion-servicio', idServicio)}
+                        ${obtenerBotonIcono('eliminar', 'btn-mini-eliminar', 'Eliminar', `Eliminar ${servicio.NombreServicio || 'servicio'}`, 'accion-servicio', idServicio)}
                     </div>
                 </td>
             </tr>
@@ -1397,7 +1706,6 @@ const cargarServicioEnFormularioAdmin = (servicio) => {
     if (titulo) titulo.textContent = `Editar: ${servicio.NombreServicio}`;
     if (botonGuardar) botonGuardar.textContent = 'Actualizar servicio';
 
-    mostrarMensajeServicioAdmin('Servicio cargado en el formulario. Modifica los campos y guarda los cambios.');
     abrirModalServicioAdmin();
     actualizarValidacionNombreServicioAdmin();
 };
@@ -1557,7 +1865,6 @@ const inicializarFormularioServiciosAdmin = () => {
 
     if (buscador && !buscador.dataset.serviciosAdminInicializado) {
         buscador.addEventListener('input', () => {
-            resetPagination('serviciosAdmin');
             renderizarServiciosAdmin();
         });
         buscador.dataset.serviciosAdminInicializado = 'true';
@@ -1587,6 +1894,14 @@ const inicializarFormularioServiciosAdmin = () => {
                 return;
             }
 
+            if (accion === 'ver') {
+                const servicio = serviciosCargados.find((item) => String(obtenerIdServicio(item)) === String(id));
+                if (servicio) {
+                    abrirDetalleServicioAdmin(servicio);
+                }
+                return;
+            }
+
             if (accion === 'eliminar') {
                 eliminarServicioAdmin(id);
             }
@@ -1602,6 +1917,23 @@ const inicializarFormularioServiciosAdmin = () => {
         });
 
         tabla.dataset.serviciosAdminInicializado = 'true';
+    }
+
+    const detalleModal = document.getElementById('modal-detalle-admin');
+    const cerrarDetalle = document.getElementById('btn-cerrar-modal-detalle');
+
+    if (detalleModal && !detalleModal.dataset.detalleInicializado) {
+        detalleModal.addEventListener('click', (event) => {
+            if (event.target === detalleModal) {
+                cerrarDetalleAdmin();
+            }
+        });
+        detalleModal.dataset.detalleInicializado = 'true';
+    }
+
+    if (cerrarDetalle && !cerrarDetalle.dataset.detalleInicializado) {
+        cerrarDetalle.addEventListener('click', cerrarDetalleAdmin);
+        cerrarDetalle.dataset.detalleInicializado = 'true';
     }
 }
 
