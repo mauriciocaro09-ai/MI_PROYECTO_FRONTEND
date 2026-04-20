@@ -1125,9 +1125,40 @@ async function cargarHabitacionesAdmin() {
     }
 }
 
+const limpiarEstadoErrorCampos = (idsCampos = []) => {
+    idsCampos.forEach((idCampo) => {
+        const campo = document.getElementById(idCampo);
+        if (campo) {
+            campo.classList.remove('input-error');
+        }
+    });
+};
+
+const validarCamposObligatorios = (definicionesCampos = []) => {
+    for (const definicion of definicionesCampos) {
+        const { id, nombre } = definicion;
+        const campo = document.getElementById(id);
+        const valor = campo?.value;
+        const valorNormalizado = typeof valor === 'string' ? valor.trim() : valor;
+
+        if (valorNormalizado === '' || valorNormalizado === null || valorNormalizado === undefined) {
+            if (campo) {
+                campo.classList.add('input-error');
+                if (typeof campo.focus === 'function') {
+                    campo.focus();
+                }
+            }
+            return `El campo ${nombre} es obligatorio.`;
+        }
+    }
+
+    return '';
+};
+
 async function guardarHabitacionAdmin(event) {
     event.preventDefault();
 
+    const formulario = document.getElementById('form-habitacion-admin');
     const campoId = document.getElementById('habitacion-admin-id');
     const campoNombre = document.getElementById('habitacion-admin-nombre');
     const campoDescripcion = document.getElementById('habitacion-admin-descripcion');
@@ -1142,6 +1173,31 @@ async function guardarHabitacionAdmin(event) {
     const estado = campoEstado?.value ?? '1';
     const imagenesHabitacion = obtenerImagenesHabitacionFormulario();
     const imagenFinal = serializarImagenesHabitacion(imagenesHabitacion);
+
+    limpiarEstadoErrorCampos([
+        'habitacion-admin-nombre',
+        'habitacion-admin-descripcion',
+        'habitacion-admin-costo',
+        'habitacion-admin-estado'
+    ]);
+
+    if (formulario && !formulario.checkValidity()) {
+        formulario.reportValidity();
+        mostrarMensajeHabitacionAdmin('Completa todos los campos obligatorios del formulario.', 'error');
+        return;
+    }
+
+    const mensajeCamposObligatorios = validarCamposObligatorios([
+        { id: 'habitacion-admin-nombre', nombre: 'Nombre de la habitación' },
+        { id: 'habitacion-admin-descripcion', nombre: 'Descripción' },
+        { id: 'habitacion-admin-costo', nombre: 'Costo' },
+        { id: 'habitacion-admin-estado', nombre: 'Estado' }
+    ]);
+
+    if (mensajeCamposObligatorios) {
+        mostrarMensajeHabitacionAdmin(mensajeCamposObligatorios, 'error');
+        return;
+    }
 
     if (!nombreHabitacion || !descripcion || !costo) {
         mostrarMensajeHabitacionAdmin('Nombre, descripción y costo son obligatorios.', 'error');
@@ -1747,6 +1803,36 @@ async function guardarServicioAdmin(evento) {
         Costo: Number(costo),
         Estado: Number(estado)
     };
+
+    limpiarEstadoErrorCampos([
+        'servicio-admin-nombre',
+        'servicio-admin-descripcion',
+        'servicio-admin-duracion',
+        'servicio-admin-cantidad-maxima',
+        'servicio-admin-costo',
+        'servicio-admin-estado'
+    ]);
+
+    const formulario = document.getElementById('form-servicio-admin');
+    if (formulario && !formulario.checkValidity()) {
+        formulario.reportValidity();
+        mostrarMensajeServicioAdmin('Completa todos los campos obligatorios del formulario.', 'error');
+        return;
+    }
+
+    const mensajeCamposObligatorios = validarCamposObligatorios([
+        { id: 'servicio-admin-nombre', nombre: 'Nombre del servicio' },
+        { id: 'servicio-admin-descripcion', nombre: 'Descripción' },
+        { id: 'servicio-admin-duracion', nombre: 'Duración' },
+        { id: 'servicio-admin-cantidad-maxima', nombre: 'Cantidad máxima de personas' },
+        { id: 'servicio-admin-costo', nombre: 'Costo' },
+        { id: 'servicio-admin-estado', nombre: 'Estado' }
+    ]);
+
+    if (mensajeCamposObligatorios) {
+        mostrarMensajeServicioAdmin(mensajeCamposObligatorios, 'error');
+        return;
+    }
 
     try {
         if (id) {

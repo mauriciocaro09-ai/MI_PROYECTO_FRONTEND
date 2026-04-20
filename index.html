@@ -151,22 +151,22 @@
                         <input type="hidden" id="habitacion-admin-id">
 
                         <label>
-                            Nombre de la habitación
+                            <span>Nombre de la habitación <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <input type="text" id="habitacion-admin-nombre" required maxlength="30" placeholder="Ej. Suite Premium">
                         </label>
 
                         <label>
-                            Descripción
+                            <span>Descripción <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <textarea id="habitacion-admin-descripcion" required maxlength="50" placeholder="Describe la habitación en pocas palabras"></textarea>
                         </label>
 
                         <label>
-                            Costo
+                            <span>Costo <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <input type="number" id="habitacion-admin-costo" required min="0" step="0.01" placeholder="Ej. 250000">
                         </label>
 
                         <label>
-                            Estado
+                            <span>Estado <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <select id="habitacion-admin-estado" required>
                                 <option value="1">Disponible</option>
                                 <option value="0">No disponible</option>
@@ -267,32 +267,32 @@
                         <input type="hidden" id="servicio-admin-id">
 
                         <label>
-                            Nombre del servicio
+                            <span>Nombre del servicio <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <input type="text" id="servicio-admin-nombre" required maxlength="50" placeholder="Ej. Masaje relajante">
                         </label>
 
                         <label>
-                            Descripción
+                            <span>Descripción <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <textarea id="servicio-admin-descripcion" required maxlength="100" placeholder="Describe el servicio en pocas palabras"></textarea>
                         </label>
 
                         <label>
-                            Duración (minutos)
+                            <span>Duración (minutos) <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <input type="number" id="servicio-admin-duracion" required min="0" placeholder="Ej. 60">
                         </label>
 
                         <label>
-                            Cantidad máxima de personas
+                            <span>Cantidad máxima de personas <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <input type="number" id="servicio-admin-cantidad-maxima" required min="1" placeholder="Ej. 4">
                         </label>
 
                         <label>
-                            Costo
+                            <span>Costo <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <input type="number" id="servicio-admin-costo" required min="0" step="0.01" placeholder="Ej. 150000">
                         </label>
 
                         <label>
-                            Estado
+                            <span>Estado <span class="campo-obligatorio" aria-hidden="true">*</span></span>
                             <select id="servicio-admin-estado" required>
                                 <option value="1">Activo</option>
                                 <option value="0">Inactivo</option>

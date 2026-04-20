@@ -213,6 +213,12 @@ function validarFormularioHabitacion(habitacion) {
     if (!validacionNombre.valido) {
         errores.push(validacionNombre.mensaje);
     }
+
+    // Validar descripción
+    const validacionDescripcion = validarRequerido(habitacion.Descripcion, 'Descripción');
+    if (!validacionDescripcion.valido) {
+        errores.push(validacionDescripcion.mensaje);
+    }
     
     // Validar costo
     const validacionCosto = validarNumerico(habitacion.Costo, 'Costo');
@@ -223,6 +229,12 @@ function validarFormularioHabitacion(habitacion) {
         if (!validacionPositivo.valido) {
             errores.push(validacionPositivo.mensaje);
         }
+    }
+
+    // Validar estado
+    const validacionEstado = validarNumerico(habitacion.Estado, 'Estado');
+    if (!validacionEstado.valido) {
+        errores.push(validacionEstado.mensaje);
     }
     
     return {
@@ -240,6 +252,23 @@ function validarFormularioServicio(servicio) {
     if (!validacionNombre.valido) {
         errores.push(validacionNombre.mensaje);
     }
+
+    // Validar descripción
+    const validacionDescripcion = validarRequerido(servicio.Descripcion, 'Descripción');
+    if (!validacionDescripcion.valido) {
+        errores.push(validacionDescripcion.mensaje);
+    }
+
+    // Validar duración
+    const validacionDuracion = validarNumerico(servicio.Duracion, 'Duración');
+    if (!validacionDuracion.valido) {
+        errores.push(validacionDuracion.mensaje);
+    } else {
+        const validacionDuracionPositiva = validarPositivo(servicio.Duracion, 'Duración');
+        if (!validacionDuracionPositiva.valido) {
+            errores.push(validacionDuracionPositiva.mensaje);
+        }
+    }
     
     // Validar costo
     const validacionCosto = validarNumerico(servicio.Costo, 'Costo');
@@ -253,11 +282,20 @@ function validarFormularioServicio(servicio) {
     }
     
     // Validar cantidad máxima de personas
-    if (servicio.CantidadMaximaPersonas) {
-        const validacionCantidad = validarNumerico(servicio.CantidadMaximaPersonas, 'Cantidad máxima');
-        if (!validacionCantidad.valido) {
-            errores.push(validacionCantidad.mensaje);
+    const validacionCantidad = validarNumerico(servicio.CantidadMaximaPersonas, 'Cantidad máxima');
+    if (!validacionCantidad.valido) {
+        errores.push(validacionCantidad.mensaje);
+    } else {
+        const validacionCantidadPositiva = validarPositivo(servicio.CantidadMaximaPersonas, 'Cantidad máxima');
+        if (!validacionCantidadPositiva.valido) {
+            errores.push(validacionCantidadPositiva.mensaje);
         }
+    }
+
+    // Validar estado
+    const validacionEstado = validarNumerico(servicio.Estado, 'Estado');
+    if (!validacionEstado.valido) {
+        errores.push(validacionEstado.mensaje);
     }
     
     return {
