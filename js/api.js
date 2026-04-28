@@ -216,3 +216,54 @@ async function eliminarServicio(id) {
     }
 }
 
+async function obtenerClientes() {
+    apiLogger.log('Obteniendo clientes...');
+    try {
+        const data = await requestJson('/clientes');
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        apiLogger.error('Error al obtener clientes:', error.message);
+        return [];
+    }
+}
+
+async function obtenerClientePorId(id) {
+    apiLogger.log('Obteniendo cliente por ID:', id);
+    try {
+        return await requestJson(`/clientes/${id}`);
+    } catch (error) {
+        apiLogger.error('Error al obtener cliente:', error.message);
+        return null;
+    }
+}
+
+async function crearCliente(cliente) {
+    apiLogger.log('Creando cliente:', cliente);
+    try {
+        return await requestJson('/clientes', { method: 'POST', body: cliente });
+    } catch (error) {
+        apiLogger.error('Error al crear cliente:', error.message);
+        return null;
+    }
+}
+
+async function actualizarCliente(id, cliente) {
+    apiLogger.log('Actualizando cliente:', id, cliente);
+    try {
+        return await requestJson(`/clientes/${id}`, { method: 'PUT', body: cliente });
+    } catch (error) {
+        apiLogger.error('Error al actualizar cliente:', error.message);
+        return null;
+    }
+}
+
+async function eliminarCliente(id) {
+    apiLogger.log('Eliminando cliente:', id);
+    try {
+        return await requestJson(`/clientes/${id}`, { method: 'DELETE' });
+    } catch (error) {
+        apiLogger.error('Error al eliminar cliente:', error.message);
+        return null;
+    }
+}
+

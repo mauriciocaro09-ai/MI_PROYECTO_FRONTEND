@@ -4,13 +4,15 @@
 
 let habitacionesAdminCargadas = [];
 let serviciosCargados = [];
+let clientesCargados = [];
 let lastShownApiError = null;
 
 const paginationState = {
     habitaciones: { page: 1, pageSize: 6 },
     servicios: { page: 1, pageSize: 6 },
     habitacionesAdmin: { page: 1, pageSize: 6 },
-    serviciosAdmin: { page: 1, pageSize: 8 }
+    serviciosAdmin: { page: 1, pageSize: 8 },
+    clientesAdmin: { page: 1, pageSize: 8 }
 };
 
 const CLAVE_CONTRASTE_ALTO = 'hospedaje_alto_contraste';
@@ -302,6 +304,557 @@ async function cargarServicios() {
     mostrarServicios(servicios);
 }
 
+const normalizarEstadoCliente = (estado) => {
+    const activo = Number(estado) === 1 || estado === true || ['activo', 'active', 'si', 'sí', 'true', '1'].includes(normalizarTexto(estado));
+    return {
+        activo,
+        texto: activo ? 'Activo' : 'Inactivo',
+        clase: activo ? 'activo' : 'inactivo'
+    };
+};
+
+const obtenerIdCliente = (cliente) => cliente?.NroDocumento || '';
+
+const mostrarMensajeClienteAdmin = (mensaje, tipo = 'info') => {
+    // Avisos deshabilitados
+    return;
+};
+
+const abrirModalClienteAdmin = () => {
+    cerrarModalesCRUD();
+    const modal = document.getElementById('modal-cliente-admin');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+};
+
+const cerrarModalClienteAdmin = () => {
+    const modal = document.getElementById('modal-cliente-admin');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    if (
+        document.getElementById('modal-habitacion-admin')?.classList.contains('hidden')
+        && document.getElementById('modal-servicio-admin')?.classList.contains('hidden')
+    ) {
+        document.body.classList.remove('modal-open');
+    }
+};
+
+const obtenerFiltrosClientesAdmin = () => {
+    const busqueda = document.getElementById('busqueda-clientes-admin');
+    const filtroEstado = document.getElementById('filtro-estado-clientes-admin');
+
+    return {
+        termino: normalizarTexto(busqueda?.value),
+        estado: filtroEstado?.value || 'all'
+    };
+};
+
+const existeClienteConDocumento = (nroDocumento, idActual = '') => {
+    const docNormalizado = normalizarTexto(nroDocumento);
+    const idActualNormalizado = normalizarTexto(idActual);
+
+    return clientesCargados.some((cliente) => {
+        const docCliente = normalizarTexto(obtenerIdCliente(cliente));
+        if (docCliente !== docNormalizado) return false;
+        if (!idActualNormalizado) return true;
+        return docCliente !== idActualNormalizado;
+    });
+};
+
+const clientesAdminCoinciden = (cliente, filtros) => {
+    const textoBusqueda = [
+        cliente.NroDocumento,
+        cliente.Nombre,
+        cliente.Apellido,
+        cliente.Email,
+        cliente.Telefono,
+        cliente.Direccion,
+        cliente.Estado
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+    const coincideTexto = !filtros.termino || textoBusqueda.includes(filtros.termino);
+    const estadoNormalizado = normalizarEstadoCliente(cliente.Estado);
+
+    if (filtros.estado === 'active' && !estadoNormalizado.activo) return false;
+    if (filtros.estado === 'inactive' && estadoNormalizado.activo) return false;
+
+    return coincideTexto;
+};
+
+const actualizarResumenClientesAdmin = (clientes) => {
+    const total = document.getElementById('clientes-admin-total');
+    const activos = document.getElementById('clientes-admin-activos');
+    const inactivos = document.getElementById('clientes-admin-inactivos');
+
+    const lista = Array.isArray(clientes) ? clientes : [];
+    const totalClientes = lista.length;
+    const clientesActivos = lista.filter((cliente) => normalizarEstadoCliente(cliente.Estado).activo).length;
+    const clientesInactivos = totalClientes - clientesActivos;
+
+    if (total) total.textContent = totalClientes;
+    if (activos) activos.textContent = clientesActivos;
+    if (inactivos) inactivos.textContent = clientesInactivos;
+};
+
+const abrirDetalleClienteAdmin = (cliente) => {
+    if (!cliente) return;
+
+    const estadoCliente = normalizarEstadoCliente(cliente.Estado);
+    const contenido = `
+        ${renderDetalleCabecera(
+            'Cliente',
+            `${cliente.Nombre || ''} ${cliente.Apellido || ''}`.trim() || 'Sin nombre',
+            estadoCliente.texto,
+            estadoCliente.clase,
+            'Información completa del cliente seleccionado.'
+        )}
+        <div class="detalle-admin-grid detalle-admin-grid-servicio">
+            <div class="detalle-admin-body detalle-admin-body-full">
+                ${renderDetalleItem('Documento', escaparHtml(obtenerIdCliente(cliente) || 'Sin documento'))}
+                ${renderDetalleItem('Nombre', escaparHtml(cliente.Nombre || 'Sin nombre'))}
+                ${renderDetalleItem('Apellido', escaparHtml(cliente.Apellido || 'Sin apellido'))}
+                ${renderDetalleItem('Email', escaparHtml(cliente.Email || 'Sin email'))}
+                ${renderDetalleItem('Teléfono', escaparHtml(cliente.Telefono || 'Sin teléfono'))}
+                ${renderDetalleItem('Dirección', escaparHtml(cliente.Direccion || 'Sin dirección'))}
+                ${renderDetalleItem('Estado', `<span class="detalle-estado ${estadoCliente.clase}">${escaparHtml(estadoCliente.texto)}</span>`)}
+                ${renderDetalleItem('Rol', escaparHtml(cliente.IDRol ?? 'Sin rol'))}
+            </div>
+        </div>
+    `;
+
+    abrirDetalleAdmin({
+        titulo: `Detalle de cliente ${obtenerIdCliente(cliente)}`,
+        contenido,
+        tipo: 'cliente'
+    });
+};
+
+const renderizarClientesAdmin = () => {
+    const contenedor = document.getElementById('clientes-admin-tbody');
+    if (!contenedor) return;
+
+    const filtros = obtenerFiltrosClientesAdmin();
+    const clientesFiltrados = clientesCargados.filter((cliente) => clientesAdminCoinciden(cliente, filtros));
+    const paginacion = getPaginatedItems(clientesFiltrados, 'clientesAdmin');
+    const clientesVisibles = paginacion.items;
+
+    actualizarResumenClientesAdmin(clientesCargados);
+
+    if (clientesFiltrados.length === 0) {
+        contenedor.innerHTML = `
+            <tr>
+                <td colspan="8" class="mensaje-vacio">No hay clientes que coincidan con el filtro actual.</td>
+            </tr>
+        `;
+        const tablaWrapVacio = contenedor.closest('.crud-clientes-tabla-wrap') || contenedor;
+        renderPaginationControls('clientesAdmin', tablaWrapVacio, 0, 0, 1, renderizarClientesAdmin);
+        return;
+    }
+
+    contenedor.innerHTML = clientesVisibles.map((cliente) => {
+        const estado = normalizarEstadoCliente(cliente.Estado);
+        const idCliente = obtenerIdCliente(cliente);
+        const switchId = `switch-cliente-${idCliente}`;
+
+        return `
+            <tr>
+                <td><strong>${escaparHtml(idCliente || '—')}</strong></td>
+                <td>${escaparHtml(cliente.Nombre || '—')}</td>
+                <td>${escaparHtml(cliente.Apellido || '—')}</td>
+                <td>${escaparHtml(cliente.Email || '—')}</td>
+                <td>${escaparHtml(cliente.Telefono || '—')}</td>
+                <td>${escaparHtml(cliente.Direccion || '—')}</td>
+                <td>
+                    <div class="crud-estado-control">
+                        <label class="switch-estado-servicio" for="${escaparHtml(switchId)}">
+                            <input
+                                id="${escaparHtml(switchId)}"
+                                type="checkbox"
+                                data-accion-cliente-estado="toggle"
+                                data-id="${escaparHtml(idCliente)}"
+                                ${estado.activo ? 'checked' : ''}
+                                aria-label="Cambiar estado de ${escaparHtml(cliente.Nombre || 'cliente')}"
+                            >
+                            <span class="switch-slider-servicio"></span>
+                        </label>
+                    </div>
+                </td>
+                <td>
+                    <div class="crud-clientes-acciones">
+                        ${obtenerBotonIcono('ver', 'btn-mini-ver', 'Ver detalle', `Ver detalle de ${cliente.Nombre || 'cliente'}`, 'accion-cliente', idCliente)}
+                        ${obtenerBotonIcono('editar', 'btn-mini-editar', 'Editar', `Editar ${cliente.Nombre || 'cliente'}`, 'accion-cliente', idCliente)}
+                        ${obtenerBotonIcono('eliminar', 'btn-mini-eliminar', 'Eliminar', `Eliminar ${cliente.Nombre || 'cliente'}`, 'accion-cliente', idCliente)}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    const tablaWrap = contenedor.closest('.crud-clientes-tabla-wrap') || contenedor;
+    renderPaginationControls('clientesAdmin', tablaWrap, paginacion.totalItems, paginacion.totalPages, paginacion.currentPage, renderizarClientesAdmin);
+};
+
+const cargarClienteEnFormularioAdmin = (cliente) => {
+    if (!cliente) return;
+
+    const campoId = document.getElementById('cliente-admin-id');
+    const campoDocumento = document.getElementById('cliente-admin-documento');
+    const campoNombre = document.getElementById('cliente-admin-nombre');
+    const campoApellido = document.getElementById('cliente-admin-apellido');
+    const campoDireccion = document.getElementById('cliente-admin-direccion');
+    const campoEmail = document.getElementById('cliente-admin-email');
+    const campoTelefono = document.getElementById('cliente-admin-telefono');
+    const campoEstado = document.getElementById('cliente-admin-estado');
+    const campoRol = document.getElementById('cliente-admin-idrol');
+    const titulo = document.getElementById('cliente-admin-form-title');
+    const botonGuardar = document.getElementById('btn-cliente-admin-guardar');
+
+    if (campoId) campoId.value = obtenerIdCliente(cliente);
+    if (campoDocumento) {
+        campoDocumento.value = obtenerIdCliente(cliente);
+        campoDocumento.disabled = true;
+    }
+    if (campoNombre) campoNombre.value = cliente.Nombre || '';
+    if (campoApellido) campoApellido.value = cliente.Apellido || '';
+    if (campoDireccion) campoDireccion.value = cliente.Direccion || '';
+    if (campoEmail) campoEmail.value = cliente.Email || '';
+    if (campoTelefono) campoTelefono.value = cliente.Telefono || '';
+    if (campoEstado) campoEstado.value = normalizarEstadoCliente(cliente.Estado).activo ? '1' : '0';
+    if (campoRol) campoRol.value = Number(cliente.IDRol) || 1;
+    if (titulo) titulo.textContent = `Editar cliente ${obtenerIdCliente(cliente)}`;
+    if (botonGuardar) botonGuardar.textContent = 'Actualizar cliente';
+
+    abrirModalClienteAdmin();
+    mostrarMensajeClienteAdmin(`Editando cliente ${cliente.Nombre || obtenerIdCliente(cliente)}.`, 'ok');
+};
+
+const limpiarFormularioClienteAdmin = (mostrarMensaje = true) => {
+    const formulario = document.getElementById('form-cliente-admin');
+    const campoId = document.getElementById('cliente-admin-id');
+    const campoDocumento = document.getElementById('cliente-admin-documento');
+    const titulo = document.getElementById('cliente-admin-form-title');
+    const botonGuardar = document.getElementById('btn-cliente-admin-guardar');
+
+    if (formulario) formulario.reset();
+    if (campoId) campoId.value = '';
+    if (campoDocumento) {
+        campoDocumento.disabled = false;
+    }
+    if (titulo) titulo.textContent = 'Crear cliente';
+    if (botonGuardar) botonGuardar.textContent = 'Guardar cliente';
+
+    if (mostrarMensaje) {
+        mostrarMensajeClienteAdmin('Formulario listo para crear un cliente.');
+    }
+};
+
+const construirPayloadCliente = ({ forzarEstado = null } = {}) => {
+    const campoDocumento = document.getElementById('cliente-admin-documento');
+    const campoNombre = document.getElementById('cliente-admin-nombre');
+    const campoApellido = document.getElementById('cliente-admin-apellido');
+    const campoDireccion = document.getElementById('cliente-admin-direccion');
+    const campoEmail = document.getElementById('cliente-admin-email');
+    const campoTelefono = document.getElementById('cliente-admin-telefono');
+    const campoEstado = document.getElementById('cliente-admin-estado');
+    const campoRol = document.getElementById('cliente-admin-idrol');
+
+    return {
+        NroDocumento: campoDocumento?.value?.trim(),
+        Nombre: campoNombre?.value?.trim(),
+        Apellido: campoApellido?.value?.trim() || null,
+        Direccion: campoDireccion?.value?.trim() || null,
+        Email: campoEmail?.value?.trim(),
+        Telefono: campoTelefono?.value?.trim() || null,
+        Estado: forzarEstado !== null ? Number(forzarEstado) : Number(campoEstado?.value ?? 1),
+        IDRol: Number(campoRol?.value ?? 1)
+    };
+};
+
+async function cargarClientesAdmin() {
+    const contenedor = document.getElementById('clientes-admin-tbody');
+    if (!contenedor) return;
+
+    try {
+        mostrarMensajeClienteAdmin('Cargando clientes...');
+        clientesCargados = await obtenerClientes();
+        resetPagination('clientesAdmin');
+        renderizarClientesAdmin();
+        mostrarMensajeClienteAdmin(`Se cargaron ${clientesCargados.length} clientes desde base de datos.`, 'ok');
+    } catch (error) {
+        console.error('Error cargando clientes:', error);
+        clientesCargados = [];
+        contenedor.innerHTML = `
+            <tr>
+                <td colspan="8" class="mensaje-vacio">Error al cargar clientes</td>
+            </tr>
+        `;
+        mostrarMensajeClienteAdmin('No se pudieron cargar los clientes.', 'error');
+        notificarErrorBackend('No se pudieron cargar clientes');
+    }
+}
+
+async function guardarClienteAdmin(evento) {
+    evento.preventDefault();
+
+    const formulario = document.getElementById('form-cliente-admin');
+    const campoId = document.getElementById('cliente-admin-id');
+    const botonGuardar = document.getElementById('btn-cliente-admin-guardar');
+
+    const idActual = campoId?.value?.trim();
+    const payload = construirPayloadCliente();
+
+    if (formulario && !formulario.checkValidity()) {
+        formulario.reportValidity();
+        mostrarMensajeClienteAdmin('Completa los campos obligatorios del formulario.', 'error');
+        return;
+    }
+
+    if (!idActual && !payload.NroDocumento) {
+        mostrarMensajeClienteAdmin('El documento es obligatorio para crear un cliente.', 'error');
+        return;
+    }
+
+    if (!payload.Nombre || !payload.Email) {
+        mostrarMensajeClienteAdmin('Nombre y email son obligatorios.', 'error');
+        return;
+    }
+
+    if (!idActual && existeClienteConDocumento(payload.NroDocumento)) {
+        mostrarMensajeClienteAdmin('Ya existe un cliente con ese número de documento.', 'error');
+        return;
+    }
+
+    try {
+        if (botonGuardar) botonGuardar.disabled = true;
+
+        if (idActual) {
+            const resultado = await actualizarCliente(idActual, payload);
+            if (!resultado) {
+                throw new Error(obtenerMensajeErrorGuardado('Ya existe un cliente con ese número de documento.', 'No se pudo actualizar el cliente'));
+            }
+            mostrarMensajeClienteAdmin('Cliente actualizado correctamente.', 'ok');
+        } else {
+            const resultado = await crearCliente(payload);
+            if (!resultado) {
+                throw new Error(obtenerMensajeErrorGuardado('Ya existe un cliente con ese número de documento.', 'No se pudo crear el cliente'));
+            }
+            mostrarMensajeClienteAdmin('Cliente creado correctamente.', 'ok');
+        }
+
+        limpiarFormularioClienteAdmin(false);
+        await cargarClientesAdmin();
+        cerrarModalClienteAdmin();
+    } catch (error) {
+        console.error('Error al guardar cliente:', error);
+        mostrarMensajeClienteAdmin(error.message || 'No se pudo guardar el cliente', 'error');
+    } finally {
+        if (botonGuardar) botonGuardar.disabled = false;
+    }
+}
+
+async function eliminarClienteAdmin(id) {
+    const cliente = clientesCargados.find((item) => String(obtenerIdCliente(item)) === String(id));
+    if (!cliente) {
+        mostrarMensajeClienteAdmin('Cliente no encontrado.', 'error');
+        return;
+    }
+
+    const nombreCliente = `${cliente.Nombre || ''} ${cliente.Apellido || ''}`.trim() || obtenerIdCliente(cliente);
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar el cliente "${nombreCliente}"?`);
+    if (!confirmacion) return;
+
+    try {
+        const resultado = await eliminarCliente(id);
+        if (!resultado) {
+            throw new Error('No se pudo eliminar el cliente');
+        }
+
+        mostrarMensajeClienteAdmin('Cliente eliminado correctamente.', 'ok');
+        limpiarFormularioClienteAdmin(false);
+        await cargarClientesAdmin();
+    } catch (error) {
+        console.error('Error al eliminar cliente:', error);
+        mostrarMensajeClienteAdmin(error.message || 'No se pudo eliminar el cliente', 'error');
+    }
+}
+
+async function cambiarEstadoClienteAdmin(id, nuevoEstado, inputToggle = null) {
+    const cliente = clientesCargados.find((item) => String(obtenerIdCliente(item)) === String(id));
+    if (!cliente) {
+        if (inputToggle) {
+            inputToggle.checked = !nuevoEstado;
+            inputToggle.disabled = false;
+        }
+        mostrarMensajeClienteAdmin('No se encontró el cliente para cambiar estado.', 'error');
+        return;
+    }
+
+    try {
+        if (inputToggle) inputToggle.disabled = true;
+
+        const payload = {
+            Nombre: cliente.Nombre,
+            Apellido: cliente.Apellido,
+            Direccion: cliente.Direccion,
+            Email: cliente.Email,
+            Telefono: cliente.Telefono,
+            Estado: nuevoEstado ? 1 : 0,
+            IDRol: cliente.IDRol || 1
+        };
+
+        const resultado = await actualizarCliente(id, payload);
+        if (!resultado) {
+            throw new Error('No se pudo actualizar el estado del cliente');
+        }
+
+        cliente.Estado = nuevoEstado ? 1 : 0;
+        renderizarClientesAdmin();
+        mostrarMensajeClienteAdmin(`Estado actualizado: ${cliente.Nombre || id} ${nuevoEstado ? 'activado' : 'desactivado'}.`, 'ok');
+    } catch (error) {
+        console.error('Error al cambiar estado de cliente:', error);
+        if (inputToggle) {
+            inputToggle.checked = !nuevoEstado;
+        }
+        mostrarMensajeClienteAdmin(error.message || 'No se pudo actualizar el estado', 'error');
+    } finally {
+        if (inputToggle) inputToggle.disabled = false;
+    }
+}
+
+function configurarClientesAdmin() {
+    const formulario = document.getElementById('form-cliente-admin');
+    const botonNuevo = document.getElementById('btn-nuevo-cliente-admin');
+    const botonLimpiar = document.getElementById('btn-cliente-admin-limpiar');
+    const botonCerrarModal = document.getElementById('btn-cerrar-modal-cliente');
+    const modalCliente = document.getElementById('modal-cliente-admin');
+    const buscador = document.getElementById('busqueda-clientes-admin');
+    const filtroEstado = document.getElementById('filtro-estado-clientes-admin');
+    const tabla = document.getElementById('clientes-admin-tbody');
+
+    if (formulario && !formulario.dataset.clientesAdminInicializado) {
+        formulario.addEventListener('submit', guardarClienteAdmin);
+        formulario.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (botonNuevo && !botonNuevo.dataset.clientesAdminInicializado) {
+        botonNuevo.addEventListener('click', () => {
+            limpiarFormularioClienteAdmin(false);
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const mainWrapper = document.getElementById('main-wrapper');
+            if (sidebar) sidebar.classList.add('open');
+            if (mainWrapper) mainWrapper.classList.add('sidebar-open');
+            if (overlay && window.innerWidth <= 768) {
+                overlay.classList.add('active');
+            }
+            localStorage.setItem('hospedaje_sidebar_open', '1');
+            abrirModalClienteAdmin();
+        });
+        botonNuevo.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (botonLimpiar && !botonLimpiar.dataset.clientesAdminInicializado) {
+        botonLimpiar.addEventListener('click', () => limpiarFormularioClienteAdmin());
+        botonLimpiar.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (botonCerrarModal && !botonCerrarModal.dataset.clientesAdminInicializado) {
+        botonCerrarModal.addEventListener('click', cerrarModalClienteAdmin);
+        botonCerrarModal.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (modalCliente && !modalCliente.dataset.clientesAdminInicializado) {
+        modalCliente.addEventListener('click', (event) => {
+            if (event.target === modalCliente) {
+                cerrarModalClienteAdmin();
+            }
+        });
+        modalCliente.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (buscador && !buscador.dataset.clientesAdminInicializado) {
+        buscador.addEventListener('input', () => {
+            resetPagination('clientesAdmin');
+            renderizarClientesAdmin();
+        });
+        buscador.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (filtroEstado && !filtroEstado.dataset.clientesAdminInicializado) {
+        filtroEstado.addEventListener('change', () => {
+            resetPagination('clientesAdmin');
+            renderizarClientesAdmin();
+        });
+        filtroEstado.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (tabla && !tabla.dataset.clientesAdminInicializado) {
+        tabla.addEventListener('click', (event) => {
+            const boton = event.target.closest('button[data-accion-cliente]');
+            if (!boton) return;
+
+            const accion = boton.dataset.accionCliente;
+            const id = boton.dataset.id;
+            const cliente = clientesCargados.find((item) => String(obtenerIdCliente(item)) === String(id));
+
+            if (accion === 'ver') {
+                if (cliente) abrirDetalleClienteAdmin(cliente);
+                return;
+            }
+
+            if (accion === 'editar') {
+                if (cliente) cargarClienteEnFormularioAdmin(cliente);
+                return;
+            }
+
+            if (accion === 'eliminar') {
+                eliminarClienteAdmin(id);
+            }
+        });
+
+        tabla.addEventListener('change', (event) => {
+            const switchEstado = event.target.closest('input[data-accion-cliente-estado="toggle"]');
+            if (!switchEstado) return;
+
+            const id = switchEstado.dataset.id;
+            const nuevoEstado = switchEstado.checked;
+            cambiarEstadoClienteAdmin(id, nuevoEstado, switchEstado);
+        });
+
+        tabla.dataset.clientesAdminInicializado = 'true';
+    }
+
+    if (!document.body.dataset.clientesAdminEscapeInicializado) {
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                cerrarModalClienteAdmin();
+            }
+        });
+        document.body.dataset.clientesAdminEscapeInicializado = 'true';
+    }
+
+    const detalleModal = document.getElementById('modal-detalle-admin');
+    const cerrarDetalle = document.getElementById('btn-cerrar-modal-detalle');
+
+    if (detalleModal && !detalleModal.dataset.detalleInicializado) {
+        detalleModal.addEventListener('click', (event) => {
+            if (event.target === detalleModal) {
+                cerrarDetalleAdmin();
+            }
+        });
+        detalleModal.dataset.detalleInicializado = 'true';
+    }
+
+    if (cerrarDetalle && !cerrarDetalle.dataset.detalleInicializado) {
+        cerrarDetalle.addEventListener('click', cerrarDetalleAdmin);
+        cerrarDetalle.dataset.detalleInicializado = 'true';
+    }
+}
+
 // ============================================
 // CRUD DE HABITACIONES
 // ============================================
@@ -375,6 +928,11 @@ const abrirDetalleAdmin = ({ titulo, contenido, tipo }) => {
     modal.dataset.detalleTipo = tipo || '';
     modal.classList.remove('hidden');
     document.body.classList.add('modal-open');
+
+    // Inicializar carrusel si existe
+    setTimeout(() => {
+        inicializarCarruselDetalle();
+    }, 0);
 };
 
 const cerrarDetalleAdmin = () => {
@@ -565,23 +1123,21 @@ const renderGaleriaHabitacionDetalle = (imagenes, nombre) => {
         `;
     }
 
-    const principal = lista[0];
-    const miniaturas = lista.slice(1);
+    // Generar carrusel con flechas de navegación
+    const galeriaHtml = lista.map((imagen, indice) => `
+        <li><img src="${escaparHtml(imagen)}" alt="${escaparHtml(nombre || 'Habitación')} ${indice + 1}" onerror="this.src='assets/images/default.svg'"></li>
+    `).join('');
 
     return `
         <div class="detalle-admin-gallery">
-            <figure class="detalle-admin-figure detalle-admin-figure-main">
-                <img src="${escaparHtml(principal)}" alt="${escaparHtml(nombre || 'Habitación')}" onerror="this.src='assets/images/default.svg'">
-            </figure>
-            ${miniaturas.length > 0 ? `
-                <div class="detalle-admin-thumbs">
-                    ${miniaturas.map((imagen, indice) => `
-                        <figure class="detalle-admin-thumb">
-                            <img src="${escaparHtml(imagen)}" alt="${escaparHtml(nombre || 'Habitación')} ${indice + 2}" onerror="this.src='assets/images/default.svg'">
-                        </figure>
-                    `).join('')}
+            <div class="carousel" id="detalle-carousel" aria-roledescription="carousel">
+                <button class="carousel-btn prev" id="detalle-carousel-prev" aria-label="Imagen anterior">‹</button>
+                <div class="carousel-viewport">
+                    <ul class="carousel-track" id="detalle-carousel-track" role="list">${galeriaHtml}</ul>
                 </div>
-            ` : ''}
+                <button class="carousel-btn next" id="detalle-carousel-next" aria-label="Siguiente imagen">›</button>
+            </div>
+            <div class="carousel-counter" id="detalle-carousel-counter" aria-hidden="true"></div>
         </div>
     `;
 };
@@ -677,35 +1233,8 @@ const obtenerImagenParaPayload = (habitacion) => {
 };
 
 const mostrarMensajeHabitacionAdmin = (texto, tipo = 'info') => {
-    const mensajes = [
-        document.getElementById('mensaje-habitacion-admin'),
-        document.getElementById('mensaje-habitacion-admin-modal')
-    ].filter(Boolean);
-
-    if (!mensajes.length) return;
-
-    mensajes.forEach((mensaje) => {
-        mensaje.textContent = texto || '';
-        mensaje.className = 'crud-habitaciones-mensaje';
-        mensaje.style.color = '';
-        mensaje.style.background = '';
-        mensaje.style.border = '';
-        mensaje.style.fontWeight = '';
-
-        if (tipo === 'ok') {
-            mensaje.classList.add('exito');
-        } else if (tipo === 'error') {
-            mensaje.classList.add('error');
-        }
-
-        if (tipo === 'ok' || tipo === 'exito') {
-            mensaje.style.setProperty('color', '#14532d', 'important');
-            mensaje.style.setProperty('background', 'rgba(20, 83, 45, 0.16)', 'important');
-            mensaje.style.setProperty('border', '1px solid rgba(20, 83, 45, 0.45)', 'important');
-            mensaje.style.setProperty('font-weight', '700', 'important');
-            mensaje.classList.add('exito');
-        }
-    });
+    // Avisos deshabilitados
+    return;
 };
 
 const esErrorDuplicadoBackend = (mensaje) => {
@@ -829,20 +1358,143 @@ const cerrarModalHabitacionAdmin = () => {
     }
 };
 
-const mostrarPreviewHabitacionAdmin = (src) => {
+const mostrarPreviewHabitacionAdmin = (input) => {
     const wrap = document.getElementById('habitacion-admin-preview-wrap');
-    const imagen = document.getElementById('habitacion-admin-preview');
+    const track = document.getElementById('habitacion-carousel-track');
+    const btnPrev = document.getElementById('habitacion-carousel-prev');
+    const btnNext = document.getElementById('habitacion-carousel-next');
+    const counter = document.getElementById('habitacion-carousel-counter');
 
-    if (!wrap || !imagen) return;
+    if (!wrap || !track) return;
 
-    if (!src) {
+    // Normalizar entrada: puede ser string (URLs separadas por salto de línea o comas) o array
+    let images = [];
+    if (!input) images = [];
+    else if (Array.isArray(input)) images = input.slice();
+    else if (typeof input === 'string') {
+        images = input.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
+    }
+
+    // Vaciar track
+    track.innerHTML = '';
+
+    if (images.length === 0) {
         wrap.classList.add('hidden');
-        imagen.removeAttribute('src');
+        if (counter) counter.textContent = '';
         return;
     }
 
-    imagen.src = src;
+    // Renderizar imágenes
+    images.forEach((src) => {
+        const li = document.createElement('li');
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'Imagen de habitación';
+        li.appendChild(img);
+        track.appendChild(li);
+    });
+
+    // Estado del carrusel
+    let current = 0;
+    const total = images.length;
+
+    const update = (index) => {
+        current = (index + total) % total; // navegación infinita
+        const offset = -current * 100;
+        track.style.transform = `translateX(${offset}%)`;
+        if (counter) counter.textContent = `${current + 1} / ${total}`;
+    };
+
+    // Event handlers
+    const onPrev = () => update(current - 1);
+    const onNext = () => update(current + 1);
+
+    // Limpiar listeners previos
+    if (btnPrev) {
+        btnPrev.replaceWith(btnPrev.cloneNode(true));
+    }
+    if (btnNext) {
+        btnNext.replaceWith(btnNext.cloneNode(true));
+    }
+
+    // Re-obtener botones (clonados)
+    const newPrev = document.getElementById('habitacion-carousel-prev');
+    const newNext = document.getElementById('habitacion-carousel-next');
+
+    if (newPrev) newPrev.addEventListener('click', onPrev);
+    if (newNext) newNext.addEventListener('click', onNext);
+
+    // Habilitar teclado para modal (flechas)
+    const modal = document.getElementById('modal-habitacion-admin');
+    const keyHandler = (e) => {
+        if (e.key === 'ArrowLeft') onPrev();
+        if (e.key === 'ArrowRight') onNext();
+    };
+
+    // Adjuntar/detachar escucha cuando modal abierto
+    if (modal) {
+        modal.removeEventListener('keydown', keyHandler);
+        modal.addEventListener('keydown', keyHandler);
+        // Asegurar foco para recibir eventos de teclado
+        modal.setAttribute('tabindex', '-1');
+    }
+
     wrap.classList.remove('hidden');
+    update(0);
+};
+
+const inicializarCarruselDetalle = () => {
+    const track = document.getElementById('detalle-carousel-track');
+    const btnPrev = document.getElementById('detalle-carousel-prev');
+    const btnNext = document.getElementById('detalle-carousel-next');
+    const counter = document.getElementById('detalle-carousel-counter');
+
+    if (!track) return; // No hay carrusel en el detalle actual
+
+    const items = track.querySelectorAll('li');
+    if (items.length === 0) return;
+
+    let current = 0;
+    const total = items.length;
+
+    const update = (index) => {
+        current = (index + total) % total; // navegación infinita
+        const offset = -current * 100;
+        track.style.transform = `translateX(${offset}%)`;
+        if (counter) counter.textContent = `${current + 1} / ${total}`;
+    };
+
+    // Event handlers
+    const onPrev = () => update(current - 1);
+    const onNext = () => update(current + 1);
+
+    // Agregar listeners a los botones
+    if (btnPrev) {
+        btnPrev.replaceWith(btnPrev.cloneNode(true));
+        const newBtnPrev = document.getElementById('detalle-carousel-prev');
+        if (newBtnPrev) newBtnPrev.addEventListener('click', onPrev);
+    }
+    if (btnNext) {
+        btnNext.replaceWith(btnNext.cloneNode(true));
+        const newBtnNext = document.getElementById('detalle-carousel-next');
+        if (newBtnNext) newBtnNext.addEventListener('click', onNext);
+    }
+
+    // Habilitar teclado para modal (flechas)
+    const modal = document.getElementById('modal-detalle-admin');
+    const keyHandler = (e) => {
+        if (e.key === 'ArrowLeft') onPrev();
+        if (e.key === 'ArrowRight') onNext();
+    };
+
+    if (modal) {
+        modal.removeEventListener('keydown', keyHandler);
+        modal.addEventListener('keydown', keyHandler);
+        modal.setAttribute('tabindex', '-1');
+    }
+
+    // Inicializar mostrador
+    update(0);
 };
 
 const aplicarModoContraste = (activo) => {
@@ -861,24 +1513,8 @@ const aplicarModoContraste = (activo) => {
 };
 
 function configurarModoContraste() {
-    const boton = document.getElementById('toggle-contraste');
-    const preferenciaGuardada = localStorage.getItem(CLAVE_CONTRASTE_ALTO) === 'true';
-
-    aplicarModoContraste(preferenciaGuardada);
-
-    if (!boton || boton.dataset.contrasteInicializado) {
-        return;
-    }
-
-    boton.addEventListener('click', () => {
-        const estaActivo = document.body.classList.contains('high-contrast');
-        const nuevoEstado = !estaActivo;
-
-        aplicarModoContraste(nuevoEstado);
-        localStorage.setItem(CLAVE_CONTRASTE_ALTO, nuevoEstado ? 'true' : 'false');
-    });
-
-    boton.dataset.contrasteInicializado = 'true';
+    // Aplicar contraste al 100% de forma permanente
+    document.body.classList.add('high-contrast');
 }
 
 const actualizarResumenHabitacionesAdmin = (habitaciones) => {
@@ -966,6 +1602,7 @@ const renderizarHabitacionesAdmin = () => {
                     <div class="crud-habitaciones-nombre">${escaparHtml(habitacion.NombreHabitacion || 'Sin nombre')}</div>
                 </td>
                 <td><strong>${formatearCostoHabitacion(habitacion.Costo)}</strong></td>
+                <td class="crud-habitaciones-descripcion">${escaparHtml(habitacion.Descripcion || 'Sin descripción')}</td>
                 <td>
                     <div class="crud-estado-control">
                         <label class="switch-estado" for="${escaparHtml(switchId)}">
@@ -981,7 +1618,6 @@ const renderizarHabitacionesAdmin = () => {
                         </label>
                     </div>
                 </td>
-                <td class="crud-habitaciones-descripcion">${escaparHtml(habitacion.Descripcion || 'Sin descripción')}</td>
                 <td>
                     <div class="crud-habitaciones-acciones">
                         ${obtenerBotonIcono('ver', 'btn-mini-ver', 'Ver detalle', `Ver detalle de ${habitacion.NombreHabitacion || 'habitación'}`, 'accion-habitacion', idHabitacion)}
@@ -1443,6 +2079,24 @@ function cargarSeccion(seccion, event) {
         event.preventDefault();
     }
 
+    const mantenerSidebarAbierto = () => {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const mainWrapper = document.getElementById('main-wrapper');
+
+        if (sidebar) sidebar.classList.add('open');
+        if (overlay && window.innerWidth <= 768) {
+            overlay.classList.add('active');
+        } else if (overlay) {
+            overlay.classList.remove('active');
+        }
+        if (mainWrapper) mainWrapper.classList.add('sidebar-open');
+
+        localStorage.setItem('hospedaje_sidebar_open', '1');
+    };
+
+    mantenerSidebarAbierto();
+
     // Ocultar todas las secciones
     document.querySelectorAll('[id^="seccion-"]').forEach((section) => {
         section.classList.add('hidden');
@@ -1460,15 +2114,12 @@ function cargarSeccion(seccion, event) {
             cargarHabitacionesAdmin();
         } else if (seccion === 'administrar-servicios') {
             cargarServiciosAdmin();
+        } else if (seccion === 'administrar-clientes') {
+            cargarClientesAdmin();
         }
-        
-        // Cerrar sidebar en móviles
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (sidebar && window.innerWidth <= 768) {
-            sidebar.classList.remove('active');
-            if (overlay) overlay.classList.remove('active');
-        }
+
+        // Garantiza que el sidebar no se cierre al navegar entre opciones.
+        mantenerSidebarAbierto();
     }
 }
 
@@ -1493,33 +2144,8 @@ const formatearCostoServicio = (costo) => {
 };
 
 const mostrarMensajeServicioAdmin = (mensaje, tipo = 'info') => {
-    const elementos = [
-        document.getElementById('mensaje-servicio-admin'),
-        document.getElementById('mensaje-servicio-admin-modal')
-    ].filter(Boolean);
-
-    if (!elementos.length) return;
-
-    elementos.forEach((elemento) => {
-        elemento.textContent = mensaje;
-        elemento.className = 'crud-servicios-mensaje';
-        elemento.style.color = '';
-        elemento.style.background = '';
-        elemento.style.border = '';
-        elemento.style.fontWeight = '';
-
-        if (tipo !== 'info') {
-            elemento.classList.add(tipo);
-        }
-
-        if (tipo === 'ok' || tipo === 'exito') {
-            elemento.style.setProperty('color', '#14532d', 'important');
-            elemento.style.setProperty('background', 'rgba(20, 83, 45, 0.16)', 'important');
-            elemento.style.setProperty('border', '1px solid rgba(20, 83, 45, 0.45)', 'important');
-            elemento.style.setProperty('font-weight', '700', 'important');
-            elemento.classList.add('exito');
-        }
-    });
+    // Avisos deshabilitados
+    return;
 };
 
 const abrirModalServicioAdmin = () => {
@@ -1632,6 +2258,7 @@ const renderizarServiciosAdmin = () => {
                 <td><strong>${servicio.Duracion || '—'}</strong></td>
                 <td>${servicio.CantidadMaximaPersonas || '—'}</td>
                 <td><strong>${formatearCostoServicio(servicio.Costo)}</strong></td>
+                <td class="crud-servicios-descripcion">${escaparHtml(servicio.Descripcion || 'Sin descripción')}</td>
                 <td>
                     <div class="crud-estado-control">
                         <label class="switch-estado-servicio" for="${escaparHtml(switchId)}">
@@ -1647,7 +2274,6 @@ const renderizarServiciosAdmin = () => {
                         </label>
                     </div>
                 </td>
-                <td class="crud-servicios-descripcion">${escaparHtml(servicio.Descripcion || 'Sin descripción')}</td>
                 <td>
                     <div class="crud-servicios-acciones">
                         ${obtenerBotonIcono('ver', 'btn-mini-ver', 'Ver detalle', `Ver detalle de ${servicio.NombreServicio || 'servicio'}`, 'accion-servicio', idServicio)}
@@ -2031,7 +2657,11 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Backend URL:', 'http://localhost:3000/api');
     configurarModoContraste();
 
-    if (window.location.hash === '#seccion-administrar-habitaciones' || window.location.hash === '#seccion-administrar-servicios') {
+    if (
+        window.location.hash === '#seccion-administrar-habitaciones'
+        || window.location.hash === '#seccion-administrar-servicios'
+        || window.location.hash === '#seccion-administrar-clientes'
+    ) {
         const target = document.querySelector(window.location.hash);
         if (target) {
             setTimeout(() => {
@@ -2059,6 +2689,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('form-servicio-admin')) {
         inicializarFormularioServiciosAdmin();
     }
+
+    if (document.getElementById('form-cliente-admin')) {
+        configurarClientesAdmin();
+    }
+
+    if (document.getElementById('clientes-admin-tbody')) {
+        configurarClientesAdmin();
+    }
     
     if (document.getElementById('habitaciones-admin-tbody')) {
         configurarCRUDHabitaciones();
@@ -2083,3 +2721,6 @@ window.cargarHabitacionesAdmin = cargarHabitacionesAdmin;
 window.guardarHabitacionAdmin = guardarHabitacionAdmin;
 window.eliminarHabitacionAdmin = eliminarHabitacionAdmin;
 window.limpiarFormularioHabitacionAdmin = limpiarFormularioHabitacionAdmin;
+window.cargarClientesAdmin = cargarClientesAdmin;
+window.guardarClienteAdmin = guardarClienteAdmin;
+window.eliminarClienteAdmin = eliminarClienteAdmin;

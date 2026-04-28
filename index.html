@@ -14,7 +14,7 @@
 </head>
 <body>
     <!-- ============================================
-         SIDEBAR - Menú Lateral
+         SIDEBAR - Menú Lateral 77
     ============================================ -->
     <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Abrir menú">
         <span class="hamburger"></span>
@@ -31,13 +31,19 @@
                 <li>
                     <a href="#" onclick="cargarSeccion('administrar-habitaciones', event)">
                         <span class="icon"><i class="fa-solid fa-bed" aria-hidden="true"></i></span>
-                        <span class="text">Administrar habitaciones</span>
+                        <span class="text">Habitaciones</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" onclick="cargarSeccion('administrar-servicios', event)">
                         <span class="icon"><i class="fa-solid" aria-hidden="true">&#xf7b6;</i></span>
-                        <span class="text">Administrar servicios</span>
+                        <span class="text">Servicios</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="cargarSeccion('administrar-clientes', event)">
+                        <span class="icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+                        <span class="text">Clientes</span>
                     </a>
                 </li>
 
@@ -58,14 +64,6 @@
         <header>
             <nav>
                 <h1><i class="fa-solid fa-hotel" aria-hidden="true"></i> Hospedaje Digital</h1>
-                <ul>
-                    <li><a href="index.html">Inicio</a></li>
-                    <li><a href="pages/nosotros.html">Nosotros</a></li>
-                    <li><a href="pages/contacto.html">Contacto</a></li>
-                </ul>
-                <button id="toggle-contraste" class="btn-contraste" type="button" aria-pressed="false">
-                    Alto contraste: OFF
-                </button>
             </nav>
         </header>
 
@@ -102,11 +100,6 @@
                 <div class="crud-habitaciones-layout">
                     <section class="crud-habitaciones-panel crud-habitaciones-panel-lista">
                         <div class="crud-habitaciones-lista-top">
-                            <div>
-                                <h4>Listado</h4>
-                                <p class="crud-habitaciones-note">Busca por nombre, descripción o estado y usa las acciones por fila.</p>
-                            </div>
-
                             <div class="crud-habitaciones-filtros">
                                 <input type="search" id="busqueda-habitaciones-admin" placeholder="Buscar habitación">
                                 <select id="filtro-estado-habitaciones-admin" aria-label="Filtrar habitaciones por estado">
@@ -124,8 +117,8 @@
                                         <th>Imagen</th>
                                         <th>Nombre</th>
                                         <th>Costo</th>
-                                        <th>Estado</th>
                                         <th>Descripción</th>
+                                        <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -181,7 +174,16 @@
 
                         <div id="habitacion-admin-preview-wrap" class="crud-habitaciones-preview hidden">
                             <p>Vista previa:</p>
-                            <img id="habitacion-admin-preview" alt="Vista previa de habitación">
+                            <div class="carousel" id="habitacion-carousel" aria-roledescription="carousel">
+                                <button class="carousel-btn prev" id="habitacion-carousel-prev" aria-label="Imagen anterior">‹</button>
+
+                                <div class="carousel-viewport">
+                                    <ul class="carousel-track" id="habitacion-carousel-track" role="list"></ul>
+                                </div>
+
+                                <button class="carousel-btn next" id="habitacion-carousel-next" aria-label="Siguiente imagen">›</button>
+                            </div>
+                            <div class="carousel-counter" id="habitacion-carousel-counter" aria-hidden="true"></div>
                         </div>
 
                         <div class="crud-habitaciones-form-actions">
@@ -217,11 +219,6 @@
                 <div class="crud-servicios-layout">
                     <section class="crud-servicios-panel crud-servicios-panel-lista">
                         <div class="crud-servicios-lista-top">
-                            <div>
-                                <h4>Listado</h4>
-                                <p class="crud-servicios-note">Busca por nombre, descripción o estado y usa las acciones por fila.</p>
-                            </div>
-
                             <div class="crud-servicios-filtros">
                                 <input type="search" id="busqueda-servicios-admin" placeholder="Buscar servicio">
                                 <select id="filtro-estado-servicios-admin" aria-label="Filtrar servicios por estado">
@@ -240,8 +237,8 @@
                                         <th>Duración (min)</th>
                                         <th>Personas</th>
                                         <th>Costo</th>
-                                        <th>Estado</th>
                                         <th>Descripción</th>
+                                        <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -255,6 +252,127 @@
                     </section>
                 </div>
             </section>
+
+            <!-- Sección de Administración de Clientes -->
+            <section id="seccion-administrar-clientes" class="crud-clientes-section hidden">
+                <div class="crud-clientes-toolbar">
+                    <button type="button" class="btn-accion-crud btn-accion-principal" id="btn-nuevo-cliente-admin">+ NUEVO CLIENTE</button>
+                    <div id="mensaje-cliente-admin" class="crud-clientes-mensaje" aria-live="polite"></div>
+                </div>
+
+                <div class="crud-clientes-summary">
+                    <article>
+                        <span>Total</span>
+                        <strong id="clientes-admin-total">0</strong>
+                    </article>
+                    <article>
+                        <span>Activos</span>
+                        <strong id="clientes-admin-activos">0</strong>
+                    </article>
+                    <article>
+                        <span>Inactivos</span>
+                        <strong id="clientes-admin-inactivos">0</strong>
+                    </article>
+                </div>
+
+                <div class="crud-clientes-layout">
+                    <section class="crud-clientes-panel crud-clientes-panel-lista">
+                        <div class="crud-clientes-lista-top">
+                            <div class="crud-clientes-filtros">
+                                <input type="search" id="busqueda-clientes-admin" placeholder="Buscar por documento, nombre, email o teléfono">
+                                <select id="filtro-estado-clientes-admin" aria-label="Filtrar clientes por estado">
+                                    <option value="all">Todos</option>
+                                    <option value="active">Activos</option>
+                                    <option value="inactive">Inactivos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="crud-clientes-tabla-wrap">
+                            <table class="crud-clientes-tabla">
+                                <thead>
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Nombre</th>
+                                        <th>Apellido</th>
+                                        <th>Email</th>
+                                        <th>Teléfono</th>
+                                        <th>Dirección</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientes-admin-tbody">
+                                    <tr>
+                                        <td colspan="8" class="mensaje-vacio">Selecciona "Administrar clientes" para cargar datos.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <div id="modal-cliente-admin" class="crud-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cliente-admin-form-title">
+                <div class="crud-modal-content">
+                    <button type="button" class="crud-modal-close" id="btn-cerrar-modal-cliente" aria-label="Cerrar formulario">&times;</button>
+                    <h4 id="cliente-admin-form-title">Crear cliente</h4>
+                    <p class="crud-clientes-note">Los campos están alineados con la estructura real de la base de datos.</p>
+                    <div id="mensaje-cliente-admin-modal" class="crud-clientes-mensaje" aria-live="polite"></div>
+
+                    <form id="form-cliente-admin" class="crud-clientes-form">
+                        <input type="hidden" id="cliente-admin-id">
+
+                        <label>
+                            <span>Documento <span class="campo-obligatorio" aria-hidden="true">*</span></span>
+                            <input type="text" id="cliente-admin-documento" required maxlength="50" placeholder="Ej. 1234567890">
+                        </label>
+
+                        <label>
+                            <span>Nombre <span class="campo-obligatorio" aria-hidden="true">*</span></span>
+                            <input type="text" id="cliente-admin-nombre" required maxlength="50" placeholder="Ej. Carlos">
+                        </label>
+
+                        <label>
+                            <span>Apellido</span>
+                            <input type="text" id="cliente-admin-apellido" maxlength="50" placeholder="Ej. López">
+                        </label>
+
+                        <label>
+                            <span>Dirección</span>
+                            <input type="text" id="cliente-admin-direccion" maxlength="50" placeholder="Ej. Calle 10 # 12-34">
+                        </label>
+
+                        <label>
+                            <span>Email <span class="campo-obligatorio" aria-hidden="true">*</span></span>
+                            <input type="email" id="cliente-admin-email" required maxlength="50" placeholder="Ej. cliente@email.com">
+                        </label>
+
+                        <label>
+                            <span>Teléfono</span>
+                            <input type="text" id="cliente-admin-telefono" maxlength="50" placeholder="Ej. 3001234567">
+                        </label>
+
+                        <label>
+                            <span>Estado <span class="campo-obligatorio" aria-hidden="true">*</span></span>
+                            <select id="cliente-admin-estado" required>
+                                <option value="1">Activo</option>
+                                <option value="0">Inactivo</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            <span>ID Rol</span>
+                            <input type="number" id="cliente-admin-idrol" min="1" value="1" placeholder="Ej. 1">
+                        </label>
+
+                        <div class="crud-clientes-form-actions">
+                            <button type="submit" class="btn-accion-crud btn-accion-principal" id="btn-cliente-admin-guardar">Guardar cliente</button>
+                            <button type="button" class="btn-accion-crud btn-accion-secundaria" id="btn-cliente-admin-limpiar">Limpiar formulario</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
             <div id="modal-servicio-admin" class="crud-modal hidden" role="dialog" aria-modal="true" aria-labelledby="servicio-admin-form-title">
                 <div class="crud-modal-content">
@@ -353,19 +471,38 @@
         const closeBtn = document.getElementById('sidebar-close');
         const overlay = document.getElementById('sidebar-overlay');
         const mainWrapper = document.getElementById('main-wrapper');
+        const SIDEBAR_STATE_KEY = 'hospedaje_sidebar_open';
+
+        function debeUsarOverlay() {
+            return window.innerWidth <= 768;
+        }
+
+        function aplicarEstadoSidebar(estaAbierto, persistir = true) {
+            sidebar.classList.toggle('open', estaAbierto);
+            overlay.classList.toggle('active', estaAbierto && debeUsarOverlay());
+            mainWrapper.classList.toggle('sidebar-open', estaAbierto);
+            if (toggle) {
+                toggle.classList.toggle('is-hidden', estaAbierto);
+            }
+
+            if (persistir) {
+                localStorage.setItem(SIDEBAR_STATE_KEY, estaAbierto ? '1' : '0');
+            }
+        }
 
         // Abrir sidebar
         function openSidebar() {
-            sidebar.classList.add('open');
-            overlay.classList.add('active');
-            mainWrapper.classList.add('sidebar-open');
+            aplicarEstadoSidebar(true);
         }
 
         // Cerrar sidebar
         function closeSidebar() {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-            mainWrapper.classList.remove('sidebar-open');
+            aplicarEstadoSidebar(false);
+        }
+
+        function restaurarEstadoSidebar() {
+            // Al recargar la vista principal, el sidebar siempre inicia abierto.
+            aplicarEstadoSidebar(true);
         }
 
         // Event listeners
@@ -381,6 +518,14 @@
             overlay.addEventListener('click', closeSidebar);
         }
 
+        window.addEventListener('resize', () => {
+            if (sidebar.classList.contains('open')) {
+                aplicarEstadoSidebar(true, false);
+            }
+        });
+
+        restaurarEstadoSidebar();
+
         // Cerrar sidebar con tecla Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && sidebar.classList.contains('open')) {
@@ -388,47 +533,6 @@
             }
         });
 
-        // Función para cargar una sección desde el sidebar
-        function cargarSeccion(seccion, event) {
-            if (event) {
-                event.preventDefault();
-            }
-            
-            const secciones = [
-                'seccion-administrar-habitaciones',
-                'seccion-administrar-servicios'
-            ];
-
-            // Ocultar todas las secciones usando la clase helper
-            secciones.forEach((seccionId) => {
-                const elemento = document.getElementById(seccionId);
-                if (elemento) {
-                    elemento.classList.add('hidden');
-                }
-            });
-            
-            // Mostrar la sección seleccionada
-            const seccionId = 'seccion-' + seccion;
-            const seccionElement = document.getElementById(seccionId);
-            
-            if (seccionElement) {
-                seccionElement.classList.remove('hidden');
-                
-                // Cargar los datos según la sección
-                if (seccion === 'administrar-habitaciones') {
-                    if (typeof cargarHabitacionesAdmin === 'function') {
-                        cargarHabitacionesAdmin();
-                    }
-                } else if (seccion === 'administrar-servicios') {
-                    if (typeof cargarServiciosAdmin === 'function') {
-                        cargarServiciosAdmin();
-                    }
-                }
-            }
-            
-            // Cerrar el sidebar después de seleccionar
-            closeSidebar();
-        }
     </script>
 </body>
 </html>
